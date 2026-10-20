@@ -1,0 +1,7 @@
+quart
+azure-identity
+azure-mgmt-subscription
+azure-mgmt-keyvault
+azure-keyvault-secrets
+azure-keyvault-certificates
+azure-keyvault-keys
