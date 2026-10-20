@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- VIEW 1: DASHBOARD HOMEPAGE -->
+<section class="view-panel active" id="view-dashboard">
+
+  <!-- Top Hero: Tenant & Subscription Identity Master Banner -->
+  <div class="hero-overview-card" id="section-tenant-overview">
+    <div class="hero-header-row">
+      <div class="hero-title-group">
+        <div class="azure-badge-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 15h18M3 9h18M9 21V3M15 21V3"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="hero-heading">Subscription & Tenant Overview</h1>
+          <p class="hero-subtext">Active directory context, cloud subscriptions, and discovered key vault infrastructure</p>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <button class="secondary-btn" onclick="navigateTo('vaults')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Inspect Key Vaults
+        </button>
+        <button class="primary-btn" onclick="showToast('Re-scan verified: 3 vaults, 10 secrets loaded')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Refresh Enum
+        </button>
+      </div>
+    </div>
+
+    <!-- Clean 2-Column Identity Cards Grid (Tenant & Subscription only) -->
+    <div class="identity-cards-grid two-col">
+      
+      <!-- Tenant Card -->
+      <div class="id-card tenant-id-card">
+        <div class="id-card-header">
+          <div class="id-badge-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Microsoft Entra Tenant</span>
+          </div>
+          <span class="status-pill active-pill">Active</span>
+        </div>
+
+        <div class="id-card-title" id="dash-tenant-name">Contoso SecOps Enterprise</div>
+
+        <div class="id-meta-list">
+          <div class="id-meta-item">
+            <span class="id-meta-key">Tenant ID:</span>
+            <span class="id-meta-val font-mono copyable-val" onclick="copyTenantId()" title="Click to copy">
+              <span id="dash-tenant-id">8a15c13b-199b-426d-a9e3-2e4fa71395b2</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </span>
+          </div>
+
+          <div class="id-meta-item">
+            <span class="id-meta-key">Primary Domain:</span>
+            <span class="id-meta-val" id="dash-primary-domain">contoso.onmicrosoft.com</span>
+          </div>
+
+          <div class="id-meta-item">
+            <span class="id-meta-key">Directory SKU:</span>
+            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Microsoft Entra ID P2</span></span>
+          </div>
+
+          <div class="id-meta-item">
+            <span class="id-meta-key">Cloud Instance:</span>
+            <span class="id-meta-val font-mono">AzureCloud (Commercial)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subscription Card -->
+      <div class="id-card sub-id-card">
+        <div class="id-card-header">
+          <div class="id-badge-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span>Azure Subscription</span>
+          </div>
+          <span class="status-pill active-pill" id="dash-sub-state">Active</span>
+        </div>
+
+        <div class="id-card-title" id="dash-sub-name">Production-Core-EastUS</div>
+
+        <div class="id-meta-list">
+          <div class="id-meta-item">
+            <span class="id-meta-key">Subscription ID:</span>
+            <span class="id-meta-val font-mono copyable-val" onclick="copySubscriptionId()" title="Click to copy">
+              <span id="dash-sub-id">7c9e6679-7425-40de-944b-e07db139912e</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </span>
+          </div>
+
+          <div class="id-meta-item">
+            <span class="id-meta-key">Management Group:</span>
+            <span class="id-meta-val font-mono" id="dash-mgmt-group">mg-core-enterprise-prod</span>
+          </div>
+
+          <div class="id-meta-item">
+            <span class="id-meta-key">Billing / Offer:</span>
+            <span class="id-meta-val" id="dash-billing-tier">Enterprise Agreement (EA Tier-1)</span>
+          </div>
+
+          <div class="id-meta-item">
+            <span class="id-meta-key">Target Region:</span>
+            <span class="id-meta-val"><span class="tag tag-cyan">East US</span></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Clean Symmetrical Metric Summary Chips (4 items) -->
+  <div class="stats-bar-grid">
+    <div class="stat-chip chip-vaults" onclick="navigateTo('vaults')" style="cursor: pointer;">
+      <div>
+        <div class="stat-label">Discovered Key Vaults</div>
+        <div class="stat-value" id="dash-stat-vaults">3</div>
+      </div>
+      <div class="stat-chip-icon icon-cyan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="stat-chip chip-secrets" onclick="navigateTo('vaults')" style="cursor: pointer;">
+      <div>
+        <div class="stat-label">Accessible Secrets</div>
+        <div class="stat-value" id="dash-stat-secrets">10</div>
+      </div>
+      <div class="stat-chip-icon icon-emerald">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 2l-2 2m-1-1l-3 3m5 0l-3-3m-6 6l-7 7a2 2 0 0 0 3 3l7-7m-3-3l3 3"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="stat-chip chip-keys" onclick="navigateTo('vaults')" style="cursor: pointer;">
+      <div>
+        <div class="stat-label">Cryptographic Keys</div>
+        <div class="stat-value" id="dash-stat-keys">5</div>
+      </div>
+      <div class="stat-chip-icon icon-amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="7.5" cy="15.5" r="5.5"></circle>
+          <path d="m21 2-9.6 9.6"></path>
+          <path d="m15.5 7.5 3 3"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="stat-chip chip-certs" onclick="navigateTo('vaults')" style="cursor: pointer;">
+      <div>
+        <div class="stat-label">Certificates</div>
+        <div class="stat-value" id="dash-stat-certs">3</div>
+      </div>
+      <div class="stat-chip-icon icon-violet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clean Main Dashboard Split Content -->
+  <div class="dashboard-split-grid">
+
+    <!-- Left Column: Discovered Resource Groups Table -->
+    <div class="dashboard-col-left" id="section-resource-groups">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-title-group">
+            <div class="card-icon-pill">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <h3>Discovered Resource Groups</h3>
+          </div>
+          <span class="badge-tag">Scope: Subscription</span>
+        </div>
+
+        <div class="rg-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Resource Group</th>
+                <th>Location</th>
+                <th>Resources</th>
+                <th>Linked Key Vaults</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dash-rg-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Discovered Vaults Quick Jump & Audit Timeline -->
+    <div class="dashboard-col-right">
+
+      <!-- Vaults Quick Access -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-title-group">
+            <div class="card-icon-pill">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <h3>Key Vault Instances</h3>
+          </div>
+          <button class="link-btn" onclick="navigateTo('vaults')">View All →</button>
+        </div>
+
+        <div class="vault-previews-list" id="dash-vault-previews">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Reconnaissance Audit Log Timeline -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div class="dash-card-title-group">
+            <div class="card-icon-pill">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <h3>Reconnaissance Log</h3>
+          </div>
+          <span class="badge-tag live-tag">Live Feed</span>
+        </div>
+
+        <div class="timeline-container">
+          <ul class="timeline-list" id="dash-timeline-list">
+            <!-- Rendered dynamically -->
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- VIEW 2: KEY VAULTS ENUMERATION VIEW -->
+<section class="view-panel" id="view-vaults">
+
+  <!-- Vault Selector Quick Switcher Bar -->
+  <div class="vault-switcher-wrapper">
+    <div class="switcher-headline">
+      <span class="switcher-title">Select Key Vault:</span>
+    </div>
+    <div class="vault-switcher-pills" id="vault-switcher-pills">
+      <!-- Rendered dynamically by app.js -->
+    </div>
+  </div>
+
+  <!-- Vault Detail Header Card -->
+  <div class="detail-header-card">
+    <div class="detail-title-row">
+      <div class="vault-headline">
+        <div class="vault-headline-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h2 id="vault-title">kv-prod-backend-eus</h2>
+      </div>
+
+      <div class="uri-pill" id="vault-uri-box" onclick="copyUri()" title="Click to copy URI">
+        <span id="vault-uri-text">https://kv-prod-backend-eus.vault.azure.net/</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="config-tags" id="config-tags">
+      <!-- Rendered dynamically -->
+    </div>
+  </div>
+
+  <!-- Navigation Tabs: Secrets, Keys, Certificates -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="secrets">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 2l-2 2m-1-1l-3 3m5 0l-3-3m-6 6l-7 7a2 2 0 0 0 3 3l7-7m-3-3l3 3"></path>
+      </svg>
+      <span>Secrets</span>
+      <span class="tab-count" id="count-secrets">0</span>
+    </button>
+
+    <button class="tab-btn" data-tab="keys">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="7.5" cy="15.5" r="5.5"></circle>
+        <path d="m21 2-9.6 9.6"></path>
+        <path d="m15.5 7.5 3 3"></path>
+      </svg>
+      <span>Cryptographic Keys</span>
+      <span class="tab-count" id="count-keys">0</span>
+    </button>
+
+    <button class="tab-btn" data-tab="certs">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <span>Certificates</span>
+      <span class="tab-count" id="count-certs">0</span>
+    </button>
+  </div>
+
+  <!-- Tab 1: Secrets -->
+  <div class="tab-pane active" id="tab-secrets">
+    <div class="data-table-container">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="secret-search-input" placeholder="Search secret identifier or content-type...">
+        </div>
+        <button class="export-btn" onclick="showToast('Exported secrets to keyvault_secrets.json')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Dump JSON
+        </button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Secret Identifier</th>
+            <th>Secret Value (Click eye to reveal)</th>
+            <th>Content Type</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody id="secrets-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 2: Keys -->
+  <div class="tab-pane" id="tab-keys">
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Key Name</th>
+            <th>Key Type</th>
+            <th>Permitted Operations</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="keys-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 3: Certificates -->
+  <div class="tab-pane" id="tab-certs">
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Certificate Name</th>
+            <th>SHA-1 Thumbprint</th>
+            <th>Expires</th>
+            <th>Auto-Renew</th>
+          </tr>
+        </thead>
+        <tbody id="certs-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}
