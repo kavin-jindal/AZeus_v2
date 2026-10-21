@@ -1,5 +1,6 @@
 import subprocess
 import json
+from azure.mgmt.subscription import SubscriptionClient
 
 class AzureAccountInfo():
     def __init__(self):
@@ -10,10 +11,13 @@ class AzureAccountInfo():
             )
         )
         
-    def sub_info(self):
+    def sub_info(self, cred):
+        sub_mgmt = SubscriptionClient(cred)
+        #sub_bill_info  =sub_mgmt.billing_account.get_policy(self.account["id"])
         return {
             "sub_id":self.account["id"],
-            "sub_name":self.account["name"]
+            "sub_name":self.account["name"],
+            #"billing_account":sub_bill_info
         }
 
     def tenant_info(self):

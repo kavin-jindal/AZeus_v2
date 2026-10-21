@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}AZeus // Key Vault Enumeration{% endblock %}
+{% block breadcrumb %}Key Vaults Enumeration{% endblock %}
+
+{% block content %}
+<!-- VIEW 2: KEY VAULTS ENUMERATION VIEW -->
+<section class="view-panel active" id="view-vaults">
+
+  <!-- Vault Selector Quick Switcher Bar -->
+  <div class="vault-switcher-wrapper">
+    <div class="switcher-headline">
+      <span class="switcher-title">Select Key Vault:</span>
+    </div>
+    <div class="vault-switcher-pills" id="vault-switcher-pills">
+      <!-- Rendered dynamically by app.js -->
+    </div>
+  </div>
+
+  <!-- Vault Detail Header Card -->
+  <div class="detail-header-card">
+    <div class="detail-title-row">
+      <div class="vault-headline">
+        <div class="vault-headline-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h2 id="vault-title">kv-prod-backend-eus</h2>
+      </div>
+
+      <div class="uri-pill" id="vault-uri-box" onclick="copyUri()" title="Click to copy URI">
+        <span id="vault-uri-text">https://kv-prod-backend-eus.vault.azure.net/</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="config-tags" id="config-tags">
+      <!-- Rendered dynamically -->
+    </div>
+  </div>
+
+  <!-- Navigation Tabs: Secrets, Keys, Certificates -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="secrets">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 2l-2 2m-1-1l-3 3m5 0l-3-3m-6 6l-7 7a2 2 0 0 0 3 3l7-7m-3-3l3 3"></path>
+      </svg>
+      <span>Secrets</span>
+      <span class="tab-count" id="count-secrets">0</span>
+    </button>
+
+    <button class="tab-btn" data-tab="keys">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="7.5" cy="15.5" r="5.5"></circle>
+        <path d="m21 2-9.6 9.6"></path>
+        <path d="m15.5 7.5 3 3"></path>
+      </svg>
+      <span>Cryptographic Keys</span>
+      <span class="tab-count" id="count-keys">0</span>
+    </button>
+
+    <button class="tab-btn" data-tab="certs">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <span>Certificates</span>
+      <span class="tab-count" id="count-certs">0</span>
+    </button>
+  </div>
+
+  <!-- Tab 1: Secrets -->
+  <div class="tab-pane active" id="tab-secrets">
+    <div class="data-table-container">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="secret-search-input" placeholder="Search secret identifier or content-type...">
+        </div>
+        <button class="export-btn" onclick="showToast('Exported secrets to keyvault_secrets.json')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Dump JSON
+        </button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Secret Identifier</th>
+            <th>Secret Value (Click eye to reveal)</th>
+            <th>Content Type</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody id="secrets-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 2: Keys -->
+  <div class="tab-pane" id="tab-keys">
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Key Name</th>
+            <th>Key Type</th>
+            <th>Permitted Operations</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="keys-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 3: Certificates -->
+  <div class="tab-pane" id="tab-certs">
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Certificate Name</th>
+            <th>SHA-1 Thumbprint</th>
+            <th>Expires</th>
+            <th>Auto-Renew</th>
+          </tr>
+        </thead>
+        <tbody id="certs-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}

@@ -1,7 +1,7 @@
 // Sample enumeration data representing Azure Tenant, Subscription, and Key Vault discovery output
 const ENUMERATION_DATA = {
   tenant: {
-    name: "Contoso SecOps Enterprise",
+    name: "as SecOps Enterprise",
     tenantId: "8a15c13b-199b-426d-a9e3-2e4fa71395b2",
     primaryDomain: "contoso.onmicrosoft.com",
     directoryType: "Microsoft Entra ID (P2 Premium)",
@@ -123,17 +123,90 @@ const ENUMERATION_DATA = {
 let currentVaultId = ENUMERATION_DATA.vaults[0].id;
 let currentView = "dashboard";
 
+function getDashboardUrl() {
+  if (window.location.pathname.endsWith(".html")) return "index.html";
+  return "/home";
+}
+
+function getKeyVaultUrl() {
+  if (window.location.pathname.endsWith(".html")) return "keyvault.html";
+  return "/keyvault";
+}
+
+function handleNavClick(event, viewName) {
+  if (event && (event.metaKey || event.ctrlKey || event.shiftKey)) {
+    return true; // allow opening in new tab
+  }
+  if (event) event.preventDefault();
+  navigateTo(viewName);
+  return false;
+}
+
 function initApp() {
+  const hasVaultsView = Boolean(document.getElementById("view-vaults"));
+  const hasDashboardView = Boolean(document.getElementById("view-dashboard"));
+  const isKeyVaultOnly = hasVaultsView && !hasDashboardView;
+  const isDashboardOnly = hasDashboardView && !hasVaultsView;
+
+  // Restore active vault from localStorage if valid
+  try {
+    const savedVault = localStorage.getItem("az_selected_vault");
+    if (savedVault && ENUMERATION_DATA.vaults.some(v => v.id === savedVault)) {
+      currentVaultId = savedVault;
+    }
+  } catch (e) {}
+
+  // Render shared framework elements
   renderSidebar();
-  renderDashboard();
-  renderActiveVault();
-  renderVaultSwitcher();
+  renderHeaderAndSidebarInfo();
+
+  if (isKeyVaultOnly) {
+    currentView = "vaults";
+    const navVaultsBtn = document.getElementById("nav-btn-vaults");
+    const navDashBtn = document.getElementById("nav-btn-dashboard");
+    const navDashBadge = document.getElementById("nav-dash-badge");
+    if (navVaultsBtn) navVaultsBtn.classList.add("active");
+    if (navDashBtn) navDashBtn.classList.remove("active");
+    if (navDashBadge) navDashBadge.style.display = "none";
+
+    const vault = getActiveVault();
+    const breadcrumbCurrent = document.getElementById("breadcrumb-current-view");
+    if (breadcrumbCurrent) breadcrumbCurrent.textContent = `Key Vaults // ${vault.name}`;
+
+    renderActiveVault();
+    renderVaultSwitcher();
+  } else if (isDashboardOnly) {
+    currentView = "dashboard";
+    const navDashBtn = document.getElementById("nav-btn-dashboard");
+    if (navDashBtn) navDashBtn.classList.add("active");
+
+    renderDashboard();
+
+    // Support deep-linking to hash sections (e.g. #section-tenant-overview)
+    if (window.location.hash) {
+      setTimeout(() => {
+        const target = document.querySelector(window.location.hash);
+        if (target) target.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  } else {
+    // Both views on same page (single-page mode fallback)
+    renderDashboard();
+    renderActiveVault();
+    renderVaultSwitcher();
+  }
+
   setupEventListeners();
 }
 
 // Navigation between Dashboard, Tenant, Resource Groups & Vaults View
 function navigateTo(viewName) {
   currentView = viewName;
+
+  const hasVaultsView = Boolean(document.getElementById("view-vaults"));
+  const hasDashboardView = Boolean(document.getElementById("view-dashboard"));
+  const isKeyVaultOnly = hasVaultsView && !hasDashboardView;
+  const isDashboardOnly = hasDashboardView && !hasVaultsView;
 
   const navDashboardBtn = document.getElementById("nav-btn-dashboard");
   const navTenantBtn = document.getElementById("nav-btn-tenant");
@@ -143,18 +216,36 @@ function navigateTo(viewName) {
   const viewVaults = document.getElementById("view-vaults");
   const breadcrumbCurrent = document.getElementById("breadcrumb-current-view");
 
-  // Remove active from all nav buttons
-  [navDashboardBtn, navTenantBtn, navRgsBtn, navVaultsBtn].forEach(b => {
-    if (b) b.classList.remove("active");
-  });
-
-  if (viewName === "dashboard") {
+  if (viewName === "vaults") {
+    if (isDashboardOnly) {
+      window.location.href = getKeyVaultUrl();
+      return;
+    }
+    [navDashboardBtn, navTenantBtn, navRgsBtn].forEach(b => b && b.classList.remove("active"));
+    if (navVaultsBtn) navVaultsBtn.classList.add("active");
+    if (viewVaults) viewVaults.classList.add("active");
+    if (viewDashboard) viewDashboard.classList.remove("active");
+    const vault = getActiveVault();
+    if (breadcrumbCurrent) breadcrumbCurrent.textContent = `Key Vaults // ${vault.name}`;
+    renderVaultSwitcher();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } else if (viewName === "dashboard") {
+    if (isKeyVaultOnly) {
+      window.location.href = getDashboardUrl();
+      return;
+    }
+    [navTenantBtn, navRgsBtn, navVaultsBtn].forEach(b => b && b.classList.remove("active"));
     if (navDashboardBtn) navDashboardBtn.classList.add("active");
     if (viewDashboard) viewDashboard.classList.add("active");
     if (viewVaults) viewVaults.classList.remove("active");
     if (breadcrumbCurrent) breadcrumbCurrent.textContent = "Dashboard Overview";
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (viewName === "tenant") {
+    if (isKeyVaultOnly) {
+      window.location.href = `${getDashboardUrl()}#section-tenant-overview`;
+      return;
+    }
+    [navDashboardBtn, navRgsBtn, navVaultsBtn].forEach(b => b && b.classList.remove("active"));
     if (navTenantBtn) navTenantBtn.classList.add("active");
     if (viewDashboard) viewDashboard.classList.add("active");
     if (viewVaults) viewVaults.classList.remove("active");
@@ -162,41 +253,62 @@ function navigateTo(viewName) {
     const tenantSec = document.getElementById("section-tenant-overview");
     if (tenantSec) tenantSec.scrollIntoView({ behavior: "smooth", block: "start" });
   } else if (viewName === "resource-groups") {
+    if (isKeyVaultOnly) {
+      window.location.href = `${getDashboardUrl()}#section-resource-groups`;
+      return;
+    }
+    [navDashboardBtn, navTenantBtn, navVaultsBtn].forEach(b => b && b.classList.remove("active"));
     if (navRgsBtn) navRgsBtn.classList.add("active");
     if (viewDashboard) viewDashboard.classList.add("active");
     if (viewVaults) viewVaults.classList.remove("active");
     if (breadcrumbCurrent) breadcrumbCurrent.textContent = "Discovered Resource Groups";
     const rgSec = document.getElementById("section-resource-groups");
     if (rgSec) rgSec.scrollIntoView({ behavior: "smooth", block: "start" });
-  } else if (viewName === "vaults") {
-    if (navVaultsBtn) navVaultsBtn.classList.add("active");
-    if (viewVaults) viewVaults.classList.add("active");
-    if (viewDashboard) viewDashboard.classList.remove("active");
-    const vault = getActiveVault();
-    if (breadcrumbCurrent) breadcrumbCurrent.textContent = `Key Vaults // ${vault.name}`;
-    renderVaultSwitcher();
   }
 }
 
 function selectVault(vaultId) {
   currentVaultId = vaultId;
+  try {
+    localStorage.setItem("az_selected_vault", vaultId);
+  } catch (e) {}
+
   renderVaultSwitcher();
   renderActiveVault();
   
-  if (currentView === "vaults") {
+  const breadcrumbCurrent = document.getElementById("breadcrumb-current-view");
+  if (breadcrumbCurrent && (currentView === "vaults" || Boolean(document.getElementById("view-vaults")))) {
     const vault = getActiveVault();
-    const breadcrumbCurrent = document.getElementById("breadcrumb-current-view");
-    if (breadcrumbCurrent) breadcrumbCurrent.textContent = `Key Vaults // ${vault.name}`;
+    breadcrumbCurrent.textContent = `Key Vaults // ${vault.name}`;
   }
 }
 
 function selectVaultAndNavigate(vaultId) {
   selectVault(vaultId);
-  navigateTo("vaults");
+  const isDashboardOnly = Boolean(document.getElementById("view-dashboard") && !document.getElementById("view-vaults"));
+  if (isDashboardOnly) {
+    window.location.href = getKeyVaultUrl();
+  } else {
+    navigateTo("vaults");
+  }
 }
 
 function getActiveVault() {
   return ENUMERATION_DATA.vaults.find(v => v.id === currentVaultId) || ENUMERATION_DATA.vaults[0];
+}
+
+// Common Header & Sidebar metadata population across all pages
+function renderHeaderAndSidebarInfo() {
+  const { resourceGroups, vaults } = ENUMERATION_DATA;
+
+  const navVaultCount = document.getElementById("nav-vault-count");
+  if (navVaultCount) navVaultCount.textContent = vaults.length;
+
+  const navRgCount = document.getElementById("nav-rg-count");
+  if (navRgCount) navRgCount.textContent = resourceGroups.length;
+
+  const sidebarRgTotal = document.getElementById("sidebar-rg-total");
+  if (sidebarRgTotal) sidebarRgTotal.textContent = `${resourceGroups.length} Active`;
 }
 
 // In-view Vault Switcher Pills on Key Vaults Page
@@ -224,65 +336,7 @@ function renderVaultSwitcher() {
 
 // Render Dashboard Homepage Data
 function renderDashboard() {
-  const { tenant, subscription, resourceGroups, reconTimeline, vaults } = ENUMERATION_DATA;
-
-  // Header & Sidebar context pills
-  const shortTenant = `${tenant.tenantId.substring(0, 8)}...${tenant.tenantId.substring(tenant.tenantId.length - 4)}`;
-  const shortSub = `${subscription.subscriptionId.substring(0, 8)}...${subscription.subscriptionId.substring(subscription.subscriptionId.length - 4)}`;
-
-  const topTenantEl = document.getElementById("top-tenant-id");
-  if (topTenantEl) topTenantEl.textContent = shortTenant;
-
-  const topSubEl = document.getElementById("top-sub-id");
-  if (topSubEl) topSubEl.textContent = shortSub;
-
-  const topSubRegionEl = document.getElementById("top-sub-region");
-  if (topSubRegionEl) topSubRegionEl.textContent = subscription.region;
-
-  const sidebarAccountEl = document.getElementById("sidebar-account-name");
-  if (sidebarAccountEl) sidebarAccountEl.textContent = tenant.account.split("@")[0];
-
-  const sidebarDomainEl = document.getElementById("sidebar-tenant-domain");
-  if (sidebarDomainEl) sidebarDomainEl.textContent = tenant.primaryDomain;
-
-  // Sidebar Tenant Options Card
-  const sidebarTenantName = document.getElementById("sidebar-tenant-name");
-  if (sidebarTenantName) sidebarTenantName.textContent = tenant.name;
-
-  const sidebarTenantDomainText = document.getElementById("sidebar-tenant-domain-text");
-  if (sidebarTenantDomainText) sidebarTenantDomainText.textContent = tenant.primaryDomain;
-
-  const sidebarTenantIdShort = document.getElementById("sidebar-tenant-id-short");
-  if (sidebarTenantIdShort) sidebarTenantIdShort.textContent = shortTenant;
-
-  // Dashboard Tenant Card
-  const dashTenantNameEl = document.getElementById("dash-tenant-name");
-  if (dashTenantNameEl) dashTenantNameEl.textContent = tenant.name;
-
-  const dashTenantIdEl = document.getElementById("dash-tenant-id");
-  if (dashTenantIdEl) dashTenantIdEl.textContent = tenant.tenantId;
-
-  const dashPrimaryDomainEl = document.getElementById("dash-primary-domain");
-  if (dashPrimaryDomainEl) dashPrimaryDomainEl.textContent = tenant.primaryDomain;
-
-  const dashTenantSkuEl = document.getElementById("dash-tenant-sku");
-  if (dashTenantSkuEl) dashTenantSkuEl.textContent = tenant.directoryType;
-
-  // Dashboard Subscription Card
-  const dashSubNameEl = document.getElementById("dash-sub-name");
-  if (dashSubNameEl) dashSubNameEl.textContent = subscription.displayName;
-
-  const dashSubIdEl = document.getElementById("dash-sub-id");
-  if (dashSubIdEl) dashSubIdEl.textContent = subscription.subscriptionId;
-
-  const dashSubStateEl = document.getElementById("dash-sub-state");
-  if (dashSubStateEl) dashSubStateEl.textContent = subscription.state;
-
-  const dashMgmtGroupEl = document.getElementById("dash-mgmt-group");
-  if (dashMgmtGroupEl) dashMgmtGroupEl.textContent = subscription.managementGroup;
-
-  const dashBillingTierEl = document.getElementById("dash-billing-tier");
-  if (dashBillingTierEl) dashBillingTierEl.textContent = subscription.spendingLimit;
+  const { resourceGroups, reconTimeline, vaults } = ENUMERATION_DATA;
 
   // Compute Metrics
   let totalSecrets = 0;
@@ -615,14 +669,18 @@ function copyUri() {
 }
 
 function copyTenantId() {
-  navigator.clipboard.writeText(ENUMERATION_DATA.tenant.tenantId).then(() => {
-    showToast(`Tenant ID copied: ${ENUMERATION_DATA.tenant.tenantId}`);
+  const el = document.getElementById("dash-tenant-id") || document.getElementById("sidebar-tenant-id-short");
+  const val = (el ? el.textContent.trim() : "") || ENUMERATION_DATA.tenant.tenantId;
+  navigator.clipboard.writeText(val).then(() => {
+    showToast(`Tenant ID copied: ${val}`);
   });
 }
 
 function copySubscriptionId() {
-  navigator.clipboard.writeText(ENUMERATION_DATA.subscription.subscriptionId).then(() => {
-    showToast(`Subscription ID copied: ${ENUMERATION_DATA.subscription.subscriptionId}`);
+  const el = document.getElementById("dash-sub-id") || document.getElementById("top-sub-id");
+  const val = (el ? el.textContent.trim() : "") || ENUMERATION_DATA.subscription.subscriptionId;
+  navigator.clipboard.writeText(val).then(() => {
+    showToast(`Subscription ID copied: ${val}`);
   });
 }
 

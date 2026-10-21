@@ -265,6 +265,7 @@ body {
   width: 100%;
   position: relative;
   text-align: left;
+  text-decoration: none;
 }
 
 .nav-item svg {
@@ -676,6 +677,11 @@ body {
 .sub-indicator {
   background: var(--accent-cyan);
   box-shadow: 0 0 6px var(--accent-cyan);
+}
+
+.user-indicator {
+  background: var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
 }
 
 .pill-label {

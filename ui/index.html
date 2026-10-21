@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{% block title %}AZeus // Subscription & Tenant Overview{% endblock %}
+{% block breadcrumb %}Dashboard Overview{% endblock %}
+
 {% block content %}
 <!-- VIEW 1: DASHBOARD HOMEPAGE -->
 <section class="view-panel active" id="view-dashboard">
@@ -14,19 +17,21 @@
           </svg>
         </div>
         <div>
-          <h1 class="hero-heading">Subscription & Tenant Overview</h1>
-          <p class="hero-subtext">Active directory context, cloud subscriptions, and discovered key vault infrastructure</p>
+          <h1 class="hero-heading">Overview</h1>
+          <p class="hero-subtext">Active directory context, cloud subscriptions, and discovered key vault infrastructure
+          </p>
         </div>
       </div>
 
       <div class="hero-actions">
-        <button class="secondary-btn" onclick="navigateTo('vaults')">
+        <a href="/keyvault" class="secondary-btn" onclick="return handleNavClick(event, 'vaults')"
+          style="text-decoration: none;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
           Inspect Key Vaults
-        </button>
+        </a>
         <button class="primary-btn" onclick="showToast('Re-scan verified: 3 vaults, 10 secrets loaded')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
@@ -39,7 +44,7 @@
 
     <!-- Clean 2-Column Identity Cards Grid (Tenant & Subscription only) -->
     <div class="identity-cards-grid two-col">
-      
+
       <!-- Tenant Card -->
       <div class="id-card tenant-id-card">
         <div class="id-card-header">
@@ -55,25 +60,29 @@
           <span class="status-pill active-pill">Active</span>
         </div>
 
-        <div class="id-card-title" id="dash-tenant-name">Contoso SecOps Enterprise</div>
+        <div class="id-card-title" id="dash-tenant-name">{{ tenant_data["tenant_name"] if tenant_data is defined and tenant_data else (info.tenant_name if info is defined and info and info.tenant_name else '') }}</div>
 
         <div class="id-meta-list">
           <div class="id-meta-item">
             <span class="id-meta-key">Tenant ID:</span>
             <span class="id-meta-val font-mono copyable-val" onclick="copyTenantId()" title="Click to copy">
-              <span id="dash-tenant-id">8a15c13b-199b-426d-a9e3-2e4fa71395b2</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span id="dash-tenant-id">{{ tenant_data["tenant_id"] if tenant_data is defined and tenant_data else (info.tenant_id if info is defined and info and info.tenant_id else '8a15c13b-199b-426d-a9e3-2e4fa71395b2') }}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
             </span>
           </div>
 
           <div class="id-meta-item">
             <span class="id-meta-key">Primary Domain:</span>
-            <span class="id-meta-val" id="dash-primary-domain">contoso.onmicrosoft.com</span>
+            <span class="id-meta-val" id="dash-primary-domain">{{ tenant_data["tenant_domain"] if tenant_data is defined and tenant_data else (info.tenant_domain if info is defined and info and info.tenant_domain else 'contoso.onmicrosoft.com') }}</span>
           </div>
 
           <div class="id-meta-item">
             <span class="id-meta-key">Directory SKU:</span>
-            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Microsoft Entra ID P2</span></span>
+            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Microsoft Entra ID
+                P2</span></span>
           </div>
 
           <div class="id-meta-item">
@@ -97,14 +106,19 @@
           <span class="status-pill active-pill" id="dash-sub-state">Active</span>
         </div>
 
-        <div class="id-card-title" id="dash-sub-name">Production-Core-EastUS</div>
+        <div class="id-card-title" id="dash-sub-name">{{ info.sub_name if info and info.sub_name else
+          'Production-Core-EastUS' }}</div>
 
         <div class="id-meta-list">
           <div class="id-meta-item">
             <span class="id-meta-key">Subscription ID:</span>
             <span class="id-meta-val font-mono copyable-val" onclick="copySubscriptionId()" title="Click to copy">
-              <span id="dash-sub-id">7c9e6679-7425-40de-944b-e07db139912e</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span id="dash-sub-id">{{ info.sub_id if info and info.sub_id else '7c9e6679-7425-40de-944b-e07db139912e'
+                }}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
             </span>
           </div>
 
@@ -236,7 +250,8 @@
             </div>
             <h3>Key Vault Instances</h3>
           </div>
-          <button class="link-btn" onclick="navigateTo('vaults')">View All →</button>
+          <a href="/keyvault" class="link-btn" onclick="return handleNavClick(event, 'vaults')"
+            style="text-decoration: none;">View All →</a>
         </div>
 
         <div class="vault-previews-list" id="dash-vault-previews">
@@ -267,149 +282,6 @@
 
     </div>
 
-  </div>
-
-</section>
-
-<!-- VIEW 2: KEY VAULTS ENUMERATION VIEW -->
-<section class="view-panel" id="view-vaults">
-
-  <!-- Vault Selector Quick Switcher Bar -->
-  <div class="vault-switcher-wrapper">
-    <div class="switcher-headline">
-      <span class="switcher-title">Select Key Vault:</span>
-    </div>
-    <div class="vault-switcher-pills" id="vault-switcher-pills">
-      <!-- Rendered dynamically by app.js -->
-    </div>
-  </div>
-
-  <!-- Vault Detail Header Card -->
-  <div class="detail-header-card">
-    <div class="detail-title-row">
-      <div class="vault-headline">
-        <div class="vault-headline-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-        </div>
-        <h2 id="vault-title">kv-prod-backend-eus</h2>
-      </div>
-
-      <div class="uri-pill" id="vault-uri-box" onclick="copyUri()" title="Click to copy URI">
-        <span id="vault-uri-text">https://kv-prod-backend-eus.vault.azure.net/</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-      </div>
-    </div>
-
-    <div class="config-tags" id="config-tags">
-      <!-- Rendered dynamically -->
-    </div>
-  </div>
-
-  <!-- Navigation Tabs: Secrets, Keys, Certificates -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" data-tab="secrets">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 2l-2 2m-1-1l-3 3m5 0l-3-3m-6 6l-7 7a2 2 0 0 0 3 3l7-7m-3-3l3 3"></path>
-      </svg>
-      <span>Secrets</span>
-      <span class="tab-count" id="count-secrets">0</span>
-    </button>
-
-    <button class="tab-btn" data-tab="keys">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="7.5" cy="15.5" r="5.5"></circle>
-        <path d="m21 2-9.6 9.6"></path>
-        <path d="m15.5 7.5 3 3"></path>
-      </svg>
-      <span>Cryptographic Keys</span>
-      <span class="tab-count" id="count-keys">0</span>
-    </button>
-
-    <button class="tab-btn" data-tab="certs">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-      </svg>
-      <span>Certificates</span>
-      <span class="tab-count" id="count-certs">0</span>
-    </button>
-  </div>
-
-  <!-- Tab 1: Secrets -->
-  <div class="tab-pane active" id="tab-secrets">
-    <div class="data-table-container">
-      <div class="table-toolbar">
-        <div class="table-search">
-          <input type="text" id="secret-search-input" placeholder="Search secret identifier or content-type...">
-        </div>
-        <button class="export-btn" onclick="showToast('Exported secrets to keyvault_secrets.json')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Dump JSON
-        </button>
-      </div>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Secret Identifier</th>
-            <th>Secret Value (Click eye to reveal)</th>
-            <th>Content Type</th>
-            <th>Last Updated</th>
-          </tr>
-        </thead>
-        <tbody id="secrets-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Tab 2: Keys -->
-  <div class="tab-pane" id="tab-keys">
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Key Name</th>
-            <th>Key Type</th>
-            <th>Permitted Operations</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="keys-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Tab 3: Certificates -->
-  <div class="tab-pane" id="tab-certs">
-    <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Certificate Name</th>
-            <th>SHA-1 Thumbprint</th>
-            <th>Expires</th>
-            <th>Auto-Renew</th>
-          </tr>
-        </thead>
-        <tbody id="certs-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
-    </div>
   </div>
 
 </section>
