@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}AZeus // Resource Groups & Assets{% endblock %}
+{% block breadcrumb %}Resource Groups & Discovered Assets{% endblock %}
+{% block nav_dashboard %}{% endblock %}
+{% block nav_rgs %}active{% endblock %}
+{% block nav_vaults %}{% endblock %}
+
+{% block content %}
+<!-- VIEW 3: RESOURCE GROUPS VIEW -->
+<section class="view-panel active" id="view-resource-groups">
+
+  <!-- Resource Group Selector Dropdown Bar -->
+  <div class="vault-switcher-wrapper">
+    <div class="switcher-left-group">
+      <div class="switcher-headline">
+        <svg class="switcher-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <label for="rg-dropdown-select" class="switcher-title">Select Resource Group:</label>
+      </div>
+
+      <!-- Custom Interactive Dropdown -->
+      <div class="vault-dropdown" id="rg-dropdown">
+        <button class="vault-dropdown-toggle" id="rg-dropdown-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" title="Select a Resource Group" onclick="toggleRgDropdown(event)">
+          <div class="vault-dropdown-toggle-left">
+            <span class="status-dot accessible" id="rg-dd-status-dot"></span>
+            <span class="vault-dd-name font-mono" id="rg-dd-selected-name">{% if groups and groups|length > 0 %}{{ groups[0].name }}{% else %}No Resource Groups{% endif %}</span>
+          </div>
+          <div class="vault-dropdown-toggle-right">
+            <span class="vault-dd-badge" id="rg-dd-selected-badge">{% if groups and groups|length > 0 %}{{ groups|length }} groups{% else %}0 groups{% endif %}</span>
+            <svg class="vault-dd-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div class="vault-dropdown-menu" id="rg-dropdown-menu" role="listbox" aria-label="Available Resource Groups">
+          <div class="vault-dropdown-search-wrapper">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="rg-dropdown-search-input" placeholder="Filter resource groups..." autocomplete="off">
+            <span class="vault-dropdown-count" id="rg-dropdown-count">{% if groups and groups|length > 0 %}{{ groups|length }} groups{% else %}0 groups{% endif %}</span>
+          </div>
+
+          <div class="vault-dropdown-items" id="rg-dropdown-options">
+            {% if groups and groups|length > 0 %}
+              {% for g in groups %}
+                <div class="vault-dropdown-item {% if loop.first %}selected{% endif %}" role="option" onclick="selectResourceGroup('{{ g.name }}')">
+                  <div class="vault-item-left">
+                    <span class="status-dot accessible"></span>
+                    <div class="vault-item-info">
+                      <span class="vault-item-name font-mono">{{ g.name }}</span>
+                      <span class="vault-item-sub">{{ g.location }}</span>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Accessible Native Select (styled fallback) -->
+        <select id="rg-dropdown-select" class="vault-dropdown-native-select" aria-label="Select Resource Group" onchange="selectResourceGroup(this.value)">
+          {% if groups and groups|length > 0 %}
+            {% for g in groups %}
+              <option value="{{ g.name }}">{{ g.name }} ({{ g.location }})</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Active Resource Group Quick Badges -->
+    <div class="switcher-right-group">
+      <div class="vault-meta-chips">
+        <div class="vault-meta-chip" title="Deployment Location">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span id="rg-quick-location">{% if groups and groups|length > 0 %}{{ groups[0].location }}{% else %}N/A{% endif %}</span>
+        </div>
+        <div class="vault-meta-chip" title="Total Discovered Resources">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          <span id="rg-quick-count">{% if resource and resource|length > 0 %}{{ resource|length }} Resources{% elif groups and groups|length > 0 %}{{ groups|length }} Groups{% else %}0 Resources{% endif %}</span>
+        </div>
+        <div class="vault-meta-chip" id="rg-quick-status-chip" title="Group Security Status">
+          <span class="status-dot accessible" id="rg-quick-status-dot"></span>
+          <span id="rg-quick-status">Healthy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resource Group Detail Header Card -->
+  <div class="detail-header-card">
+    <div class="detail-title-row">
+      <div class="vault-headline">
+        <div class="vault-headline-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+        </div>
+        <h2 id="rg-detail-title">{% if groups and groups|length > 0 %}{{ groups[0].name }}{% else %}No Resource Groups{% endif %}</h2>
+      </div>
+
+      <div class="uri-pill" id="rg-res-id-box" onclick="copyRgResourceId()" title="Click to copy Resource ID">
+        <span id="rg-res-id-text">{% if groups and groups|length > 0 %}{{ groups[0].id }}{% else %}No Active Resource Group{% endif %}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="config-tags" id="rg-config-tags">
+      {% if groups and groups|length > 0 %}
+        <span class="tag tag-cyan">Location: {{ groups[0].location }}</span>
+        <span class="tag tag-neutral">Provisioning: {{ groups[0].properties.provisioning_state if groups[0].properties else 'Succeeded' }}</span>
+        <span class="tag tag-neutral">Security Scope: Healthy</span>
+      {% else %}
+        <span class="tag tag-neutral">No Active Group</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Navigation Tabs: Resource Groups, Group Resources -->
+  <div class="tabs-nav" style="margin-top: 1.25rem;">
+    <button class="tab-btn active" data-tab="groups" onclick="switchRgTab('groups')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      </svg>
+      <span>Resource Groups</span>
+      <span class="tab-count" id="count-all-groups">{% if groups %}{{ groups|length }}{% else %}0{% endif %}</span>
+    </button>
+
+    <button class="tab-btn" data-tab="resources" onclick="switchRgTab('resources')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+      <span>Group Resources</span>
+      <span class="tab-count" id="count-rg-all">0</span>
+    </button>
+  </div>
+
+  <!-- TAB 1: ALL RESOURCE GROUPS OVERVIEW -->
+  <div class="tab-pane active" id="tab-groups">
+    <div class="data-table-container" style="margin-top: 1rem;">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="rg-group-search-input" placeholder="Search resource group name, region, or status..." oninput="filterRgGroupsTable(this.value)">
+        </div>
+        <button class="export-btn" onclick="exportAllGroupsJson()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Dump JSON
+        </button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Resource Group Name</th>
+            <th>Location</th>
+            <th>Provisioning State</th>
+            <th>Discovered Assets</th>
+            <th>Resource ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rg-groups-tbody">
+          {% if groups and groups|length > 0 %}
+            {% for g in groups %}
+              {% set ns = namespace(count=0) %}
+              {% if resource %}
+                {% for r in resource %}
+                  {% if ('/resourcegroups/' + g.name|lower + '/') in r.id|lower %}
+                    {% set ns.count = ns.count + 1 %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              <tr>
+                <td>
+                  <span class="resource-name-cell">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan); flex-shrink: 0;">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <span class="font-mono" style="font-weight: 600; color: #fff;">{{ g.name }}</span>
+                  </span>
+                </td>
+                <td>
+                  <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">{{ g.location }}</span>
+                </td>
+                <td>
+                  <span class="tag tag-cyan">{{ g.properties.provisioning_state if g.properties else 'Succeeded' }}</span>
+                </td>
+                <td>
+                  <span class="badge-tag">{{ ns.count }} resources</span>
+                </td>
+                <td>
+                  <span class="font-mono copyable-val" onclick="copyText('{{ g.id }}', 'Resource Group ID copied')" style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;" title="Click to copy ID">
+                    {{ g.id }}
+                  </span>
+                </td>
+                <td>
+                  <button class="action-btn-sm" onclick="selectRgAndSwitchTab('{{ g.name }}')">
+                    Inspect Resources →
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">
+                No resource groups discovered in subscription
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: ACTIVE GROUP RESOURCES -->
+  <div class="tab-pane" id="tab-resources">
+    <!-- Category Sub-Filters Toolbar -->
+    <div class="filter-pills-bar" style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+      <button class="vault-pill active" data-rg-filter="all" onclick="filterRgResources('all')">All Resources (<span id="pill-count-all">0</span>)</button>
+      <button class="vault-pill" data-rg-filter="keyvault" onclick="filterRgResources('keyvault')">Key Vaults (<span id="pill-count-vaults">0</span>)</button>
+      <button class="vault-pill" data-rg-filter="compute" onclick="filterRgResources('compute')">Compute (<span id="pill-count-compute">0</span>)</button>
+      <button class="vault-pill" data-rg-filter="storage" onclick="filterRgResources('storage')">Storage (<span id="pill-count-storage">0</span>)</button>
+      <button class="vault-pill" data-rg-filter="network" onclick="filterRgResources('network')">Networking (<span id="pill-count-network">0</span>)</button>
+    </div>
+
+    <!-- Resources Data Table -->
+    <div class="data-table-container" style="margin-top: 1rem;">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="rg-resource-search-input" placeholder="Search resource name, provider type, or location...">
+        </div>
+        <button class="export-btn" onclick="exportRgResourcesJson()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Dump JSON
+        </button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Resource Name</th>
+            <th>Resource Type / Provider</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rg-resources-tbody">
+          <!-- Rendered dynamically by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Hidden data bridge to safely transfer server-side groups/resources to JS without Jinja template errors in script tags -->
+  <div id="server-data" style="display: none;">
+    {% if groups and groups|length > 0 %}
+      {% for g in groups %}
+        <span class="server-group-item" 
+          data-id="{{ g.id }}" 
+          data-name="{{ g.name }}" 
+          data-location="{{ g.location }}" 
+          data-provisioning="{{ g.properties.provisioning_state if g.properties else 'Succeeded' }}" 
+          data-managed-by="{{ g.managed_by or '' }}">
+        </span>
+      {% endfor %}
+    {% endif %}
+    {% if resource and resource|length > 0 %}
+      {% for r in resource %}
+        <span class="server-resource-item" 
+          data-id="{{ r.id }}" 
+          data-name="{{ r.name }}" 
+          data-type="{{ r.type }}" 
+          data-location="{{ r.location }}">
+        </span>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function switchRgTab(tabName) {
+    document.querySelectorAll(".tab-btn[data-tab]").forEach(function(b) {
+      if (b.getAttribute("data-tab") === tabName) {
+        b.classList.add("active");
+      } else {
+        b.classList.remove("active");
+      }
+    });
+    document.querySelectorAll(".tab-pane").forEach(function(p) {
+      p.classList.remove("active");
+    });
+    const targetPane = document.getElementById("tab-" + tabName);
+    if (targetPane) {
+      targetPane.classList.add("active");
+    }
+  }
+  window.switchRgTab = switchRgTab;
+
+  function selectRgAndSwitchTab(rgName) {
+    if (typeof window.selectResourceGroup === "function") {
+      window.selectResourceGroup(rgName);
+    }
+    switchRgTab("resources");
+  }
+  window.selectRgAndSwitchTab = selectRgAndSwitchTab;
+
+  function filterRgGroupsTable(query) {
+    const tbody = document.getElementById("rg-groups-tbody");
+    if (!tbody) return;
+    const q = (query || "").toLowerCase().trim();
+    const rows = tbody.querySelectorAll("tr");
+    rows.forEach(function(row) {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(q) ? "" : "none";
+    });
+  }
+  window.filterRgGroupsTable = filterRgGroupsTable;
+
+  function exportAllGroupsJson() {
+    const data = window._serverGroupsData || [];
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+    const a = document.createElement("a");
+    a.setAttribute("href", dataStr);
+    a.setAttribute("download", "azure_resource_groups.json");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    if (typeof window.showToast === "function") {
+      window.showToast("Exported resource groups to JSON");
+    }
+  }
+  window.exportAllGroupsJson = exportAllGroupsJson;
+
+  (function() {
+    try {
+      const groupEls = document.querySelectorAll("#server-data .server-group-item");
+      const liveGroups = Array.from(groupEls).map(function(el) {
+        return {
+          id: el.dataset.id || "",
+          name: el.dataset.name || "",
+          location: el.dataset.location || "East US",
+          provisioningState: el.dataset.provisioning || "Succeeded",
+          managedBy: el.dataset.managedBy || ""
+        };
+      });
+
+      const resEls = document.querySelectorAll("#server-data .server-resource-item");
+      const liveResources = Array.from(resEls).map(function(el) {
+        return {
+          id: el.dataset.id || "",
+          name: el.dataset.name || "",
+          type: el.dataset.type || "",
+          location: el.dataset.location || ""
+        };
+      });
+
+      window._serverGroupsData = liveGroups;
+      window._serverResourcesData = liveResources;
+
+      if (typeof window.syncBackendResourceGroups === "function") {
+        window.syncBackendResourceGroups(liveGroups, liveResources);
+      }
+    } catch (err) {
+      console.warn("Could not sync live resource groups data:", err);
+    }
+  })();
+</script>
+{% endblock %}

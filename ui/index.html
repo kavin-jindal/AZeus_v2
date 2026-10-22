@@ -2,6 +2,9 @@
 
 {% block title %}AZeus // Subscription & Tenant Overview{% endblock %}
 {% block breadcrumb %}Dashboard Overview{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block nav_rgs %}{% endblock %}
+{% block nav_vaults %}{% endblock %}
 
 {% block content %}
 <!-- VIEW 1: DASHBOARD HOMEPAGE -->
@@ -66,7 +69,7 @@
           <div class="id-meta-item">
             <span class="id-meta-key">Tenant ID:</span>
             <span class="id-meta-val font-mono copyable-val" onclick="copyTenantId()" title="Click to copy">
-              <span id="dash-tenant-id">{{ tenant_data["tenant_id"] if tenant_data is defined and tenant_data else (info.tenant_id if info is defined and info and info.tenant_id else '8a15c13b-199b-426d-a9e3-2e4fa71395b2') }}</span>
+              <span id="dash-tenant-id">{{ tenant_data["tenant_id"] if tenant_data is defined and tenant_data else (info.tenant_id if info is defined and info and info.tenant_id else '00000000-0000-0000-0000-000000000000') }}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -81,8 +84,7 @@
 
           <div class="id-meta-item">
             <span class="id-meta-key">Directory SKU:</span>
-            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Microsoft Entra ID
-                P2</span></span>
+            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Unavailable</span></span>
           </div>
 
           <div class="id-meta-item">
@@ -106,15 +108,13 @@
           <span class="status-pill active-pill" id="dash-sub-state">Active</span>
         </div>
 
-        <div class="id-card-title" id="dash-sub-name">{{ info.sub_name if info and info.sub_name else
-          'Production-Core-EastUS' }}</div>
+        <div class="id-card-title" id="dash-sub-name">{{sub_data["sub_name"]}}</div>
 
         <div class="id-meta-list">
           <div class="id-meta-item">
             <span class="id-meta-key">Subscription ID:</span>
             <span class="id-meta-val font-mono copyable-val" onclick="copySubscriptionId()" title="Click to copy">
-              <span id="dash-sub-id">{{ info.sub_id if info and info.sub_id else '7c9e6679-7425-40de-944b-e07db139912e'
-                }}</span>
+              <span id="dash-sub-id">{{sub_data["sub_id"]}}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -124,17 +124,17 @@
 
           <div class="id-meta-item">
             <span class="id-meta-key">Management Group:</span>
-            <span class="id-meta-val font-mono" id="dash-mgmt-group">mg-core-enterprise-prod</span>
+            <span class="id-meta-val font-mono" id="dash-mgmt-group">Unavailable</span>
           </div>
 
           <div class="id-meta-item">
             <span class="id-meta-key">Billing / Offer:</span>
-            <span class="id-meta-val" id="dash-billing-tier">Enterprise Agreement (EA Tier-1)</span>
+            <span class="id-meta-val" id="dash-billing-tier">Unavailable</span>
           </div>
 
           <div class="id-meta-item">
             <span class="id-meta-key">Target Region:</span>
-            <span class="id-meta-val"><span class="tag tag-cyan">East US</span></span>
+            <span class="id-meta-val"><span class="tag tag-cyan">Unavailable</span></span>
           </div>
         </div>
       </div>
@@ -213,7 +213,8 @@
             </div>
             <h3>Discovered Resource Groups</h3>
           </div>
-          <span class="badge-tag">Scope: Subscription</span>
+          <a href="/resource-groups" class="link-btn" onclick="return handleNavClick(event, 'resource-groups')"
+            style="text-decoration: none;">View All →</a>
         </div>
 
         <div class="rg-table-container">

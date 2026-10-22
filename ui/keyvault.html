@@ -2,18 +2,86 @@
 
 {% block title %}AZeus // Key Vault Enumeration{% endblock %}
 {% block breadcrumb %}Key Vaults Enumeration{% endblock %}
+{% block nav_dashboard %}{% endblock %}
+{% block nav_rgs %}{% endblock %}
+{% block nav_vaults %}active{% endblock %}
 
 {% block content %}
 <!-- VIEW 2: KEY VAULTS ENUMERATION VIEW -->
 <section class="view-panel active" id="view-vaults">
 
-  <!-- Vault Selector Quick Switcher Bar -->
+  <!-- Vault Selector Dropdown Bar -->
   <div class="vault-switcher-wrapper">
-    <div class="switcher-headline">
-      <span class="switcher-title">Select Key Vault:</span>
+    <div class="switcher-left-group">
+      <div class="switcher-headline">
+        <svg class="switcher-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <label for="vault-dropdown-select" class="switcher-title">Select Key Vault:</label>
+      </div>
+
+      <!-- Custom Interactive Dropdown -->
+      <div class="vault-dropdown" id="vault-dropdown">
+        <button class="vault-dropdown-toggle" id="vault-dropdown-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" title="Select a Key Vault" onclick="toggleVaultDropdown(event)">
+          <div class="vault-dropdown-toggle-left">
+            <span class="status-dot accessible" id="vault-dd-status-dot"></span>
+            <span class="vault-dd-name font-mono" id="vault-dd-selected-name">kv-prod-backend-eus</span>
+          </div>
+          <div class="vault-dropdown-toggle-right">
+            <span class="vault-dd-badge" id="vault-dd-selected-badge">5 secrets</span>
+            <svg class="vault-dd-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div class="vault-dropdown-menu" id="vault-dropdown-menu" role="listbox" aria-label="Available Key Vaults">
+          <div class="vault-dropdown-search-wrapper">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="vault-dropdown-search-input" placeholder="Filter key vaults..." autocomplete="off">
+            <span class="vault-dropdown-count" id="vault-dropdown-count">3 vaults</span>
+          </div>
+
+          <div class="vault-dropdown-items" id="vault-dropdown-options">
+            <!-- Rendered dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- Accessible Native Select (styled fallback) -->
+        <select id="vault-dropdown-select" class="vault-dropdown-native-select" aria-label="Select Key Vault">
+          <!-- Rendered dynamically by app.js -->
+        </select>
+      </div>
     </div>
-    <div class="vault-switcher-pills" id="vault-switcher-pills">
-      <!-- Rendered dynamically by app.js -->
+
+    <!-- Active Vault Quick Badges -->
+    <div class="switcher-right-group">
+      <div class="vault-meta-chips">
+        <div class="vault-meta-chip" title="Linked Resource Group">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          <span id="vault-quick-rg">rg-core-services-prod</span>
+        </div>
+        <div class="vault-meta-chip" title="Deployment Region">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span id="vault-quick-region">eastus</span>
+        </div>
+        <div class="vault-meta-chip" id="vault-quick-status-chip" title="Access Status">
+          <span class="status-dot accessible" id="vault-quick-status-dot"></span>
+          <span id="vault-quick-status">Accessible</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -146,4 +214,19 @@
   </div>
 
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  {% if vaults_data is defined and vaults_data and vaults_data|length > 0 %}
+  try {
+    const backendVaults = {{ vaults_data | tojson }};
+    if (backendVaults && backendVaults.length > 0 && typeof window.syncBackendVaults === 'function') {
+      window.syncBackendVaults(backendVaults);
+    }
+  } catch (err) {
+    console.warn("Could not sync live key vault data:", err);
+  }
+  {% endif %}
+</script>
 {% endblock %}
