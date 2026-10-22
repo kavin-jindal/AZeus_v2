@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=5.0">
+  <link rel="stylesheet" href="styles.css?v=5.3">
+  <link rel="icon" type="image/png" href="/logo.png">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -21,15 +22,10 @@
       <div class="sidebar-brand-wrapper">
         <a href="/home" onclick="return handleNavClick(event, 'dashboard')" class="brand" style="text-decoration: none; color: inherit;">
           <div class="brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-              <path d="M2 17l10 5 10-5"></path>
-              <path d="M2 12l10 5 10-5"></path>
-            </svg>
+            <img src="/logo.png" alt="AZeus v2 Logo" width="38" height="38" style="width: 38px; height: 38px; object-fit: cover; display: block;" />
           </div>
           <div class="brand-text-block">
-            <div class="brand-name">AZeus <span class="brand-sub">// Recon</span></div>
-            <span class="badge-tag">v2.4.0 • Post-Auth</span>
+            <div class="brand-name">AZeus</div>
           </div>
         </a>
         <button class="collapse-toggle-btn" id="sidebar-toggle-btn" title="Collapse / Expand Sidebar" aria-label="Toggle Sidebar">
@@ -43,7 +39,7 @@
       <div class="sidebar-nav-section">
         <div class="sidebar-section-title">Navigation</div>
         <nav class="sidebar-nav">
-          <a class="nav-item active" id="nav-btn-dashboard" href="/home" onclick="return handleNavClick(event, 'dashboard')" title="Dashboard Homepage">
+          <a class="nav-item {% block nav_dashboard %}active{% endblock %}" id="nav-btn-dashboard" href="/home" title="Dashboard Homepage">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -54,18 +50,7 @@
             <span class="nav-badge live-badge" id="nav-dash-badge">Active</span>
           </a>
 
-          <a class="nav-item" id="nav-btn-tenant" href="/home#section-tenant-overview" onclick="return handleNavClick(event, 'tenant')" title="Tenant & Directory Options">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span class="nav-label">Tenant & Identity</span>
-            <span class="nav-badge info-badge">Entra ID</span>
-          </a>
-
-          <a class="nav-item" id="nav-btn-rgs" href="/home#section-resource-groups" onclick="return handleNavClick(event, 'resource-groups')" title="Discovered Resource Groups">
+          <a class="nav-item {% block nav_rgs %}{% endblock %}" id="nav-btn-rgs" href="/resource-groups" title="Resource Groups & Discovered Assets">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
@@ -73,8 +58,8 @@
             <span class="nav-label">Resource Groups</span>
             <span class="nav-badge count-badge" id="nav-rg-count">4</span>
           </a>
-          
-          <a class="nav-item" id="nav-btn-vaults" href="/keyvault" onclick="return handleNavClick(event, 'vaults')" title="Key Vault Enumeration">
+
+          <a class="nav-item {% block nav_vaults %}{% endblock %}" id="nav-btn-vaults" href="/keyvault" title="Key Vault Enumeration">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -83,55 +68,6 @@
             <span class="nav-badge count-badge" id="nav-vault-count">3</span>
           </a>
         </nav>
-      </div>
-
-      <!-- Resource Groups Section in Sidebar -->
-      <div class="sidebar-section-container">
-        <div class="sidebar-section-title-row">
-          <span class="sidebar-section-title">Resource Groups</span>
-          <span class="vault-mini-badge" id="sidebar-rg-total">4 Active</span>
-        </div>
-
-        <ul class="sidebar-rg-list" id="sidebar-rg-list">
-          <!-- Rendered dynamically by app.js -->
-        </ul>
-      </div>
-
-      <!-- Tenant Options Section in Sidebar -->
-      <div class="sidebar-section-container sidebar-tenant-container">
-        <div class="sidebar-section-title-row">
-          <span class="sidebar-section-title">Tenant Options</span>
-          <span class="vault-mini-badge badge-indigo">Entra P2</span>
-        </div>
-
-        <div class="sidebar-tenant-card">
-          <div class="tenant-card-top">
-            <div class="tenant-card-name" id="sidebar-tenant-name">{{ tenant_data["tenant_name"] if tenant_data is defined and tenant_data else (info.tenant_name if info is defined and info and info.tenant_name else '') }}</div>
-            <span class="tag tag-indigo">Production</span>
-          </div>
-
-          <div class="tenant-card-row">
-            <span class="tenant-card-label">Domain:</span>
-            <span class="tenant-card-val font-mono" id="sidebar-tenant-domain-text">{{ tenant_data["tenant_domain"] if tenant_data is defined and tenant_data else (info.tenant_domain if info is defined and info and info.tenant_domain else 'contoso.onmicrosoft.com') }}</span>
-          </div>
-
-          <div class="tenant-card-row">
-            <span class="tenant-card-label">Tenant ID:</span>
-            <span class="tenant-card-val font-mono copyable-val" onclick="copyTenantId()" title="Copy Tenant ID">
-              <span id="sidebar-tenant-id-short">{{ tenant_data["tenant_id"] if tenant_data is defined and tenant_data else (info.tenant_id if info is defined and info and info.tenant_id else '8a15c13b...95b2') }}</span>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </span>
-          </div>
-
-          <button class="tenant-action-btn" onclick="navigateTo('tenant')">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            View Directory Details
-          </button>
-        </div>
       </div>
 
       <!-- Sidebar Bottom: Connected Tenant & User Identity -->
@@ -145,8 +81,8 @@
             <span class="user-status-dot" title="Authenticated via Azure CLI"></span>
           </div>
           <div class="user-meta-block">
-            <div class="user-email" id="sidebar-account-name" title="{{ username if username is defined and username else (info.user if info is defined and info and info.user else 'pentest-auditor@secops.azure.internal') }}">{{ username if username is defined and username else (info.user if info is defined and info and info.user else 'pentest-auditor') }}</div>
-            <div class="user-domain" id="sidebar-tenant-domain" title="contoso.onmicrosoft.com">contoso.onmicrosoft.com</div>
+            <div class="user-email" id="sidebar-account-name" title="{{ username if username is defined and username else 'Signed in User' }}">{{ username if username is defined and username else 'Signed in User' }}</div>
+            <div class="user-domain" id="sidebar-tenant-domain" title="{{ tenant_domain if tenant_domain is defined and tenant_domain else (tenant_data['tenant_domain'] if tenant_data is defined and tenant_data and tenant_data['tenant_domain'] else 'Azure Cloud') }}">{{ tenant_domain if tenant_domain is defined and tenant_domain else (tenant_data['tenant_domain'] if tenant_data is defined and tenant_data and tenant_data['tenant_domain'] else 'Azure Cloud') }}</div>
           </div>
         </div>
       </div>
@@ -159,8 +95,6 @@
       <!-- Sticky Top Context Bar -->
       <header class="top-context-bar">
         <div class="context-breadcrumb">
-          <a href="/home" onclick="return handleNavClick(event, 'dashboard')" class="breadcrumb-root" style="text-decoration: none; color: inherit;">AZeus Recon</a>
-          <span class="breadcrumb-sep">/</span>
           <span class="breadcrumb-current" id="breadcrumb-current-view">{% block breadcrumb %}Dashboard Overview{% endblock %}</span>
         </div>
 
@@ -169,7 +103,7 @@
           <div class="context-pill user-pill" title="Authenticated User Identity">
             <span class="pill-indicator user-indicator"></span>
             <span class="pill-label">User:</span>
-            <span class="pill-value font-mono" id="top-user-name">{{ username if username is defined and username else (info.user if info is defined and info and info.user else 'pentest-auditor') }}</span>
+            <span class="pill-value font-mono" id="top-user-name">{{ username if username is defined and username else 'Signed in User' }}</span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-emerald);">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
@@ -192,7 +126,7 @@
     <span>Notification text</span>
   </div>
 
-  <script src="app.js?v=5.0"></script>
+  <script src="app.js?v=5.5"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
