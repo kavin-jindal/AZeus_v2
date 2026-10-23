@@ -92,7 +92,7 @@ pip install -r requirements.txt
 ### 4. Launch the Console
 Start the local Quart application:
 ```bash
-python main.py
+python run.py
 ```
 
 ### 5. Access the Web Interface

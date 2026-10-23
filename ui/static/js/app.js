@@ -324,6 +324,14 @@ function syncBackendVaults(liveVaults) {
         ops: k.ops || ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
         updated: k.updated || ""
       })),
+      deleted_keys: (v.deleted_keys || []).map(dk => ({
+        name: dk.name,
+        id: dk.id || "",
+        recovery_id: dk.recovery_id || "",
+        key_type: dk.key_type || dk.type || "RSA",
+        deleted_date: dk.deleted_date || "",
+        scheduled_purge_date: dk.scheduled_purge_date || ""
+      })),
       certificates: (v.certificates || v.certs || []).map(c => ({
         name: c.name,
         thumbprint: c.thumbprint || "",
@@ -1315,12 +1323,16 @@ function renderActiveVault() {
     const countKeys = document.getElementById("count-keys");
     if (countKeys) countKeys.textContent = "0";
 
+    const countDelKeys = document.getElementById("count-del-keys");
+    if (countDelKeys) countDelKeys.textContent = "0";
+
     const countCerts = document.getElementById("count-certs");
     if (countCerts) countCerts.textContent = "0";
 
     renderSecretsTable([]);
     renderDeletedSecretsTable([]);
     renderKeysTable([]);
+    renderDeletedKeysTable([]);
     renderCertsTable([]);
     return;
   }
@@ -1367,12 +1379,16 @@ function renderActiveVault() {
   const countKeys = document.getElementById("count-keys");
   if (countKeys) countKeys.textContent = vault.keys.length;
 
+  const countDelKeys = document.getElementById("count-del-keys");
+  if (countDelKeys) countDelKeys.textContent = (vault.deleted_keys || []).length;
+
   const countCerts = document.getElementById("count-certs");
   if (countCerts) countCerts.textContent = vault.certificates.length;
 
   renderSecretsTable(vault.secrets);
   renderDeletedSecretsTable(vault.deleted_secrets || [], vault.uri);
   renderKeysTable(vault.keys);
+  renderDeletedKeysTable(vault.deleted_keys || [], vault.uri);
   renderCertsTable(vault.certificates);
 }
 
@@ -1612,6 +1628,133 @@ async function recoverAndRevealSecret(vaultUri, secretName, btnEl) {
 }
 window.recoverAndRevealSecret = recoverAndRevealSecret;
 
+function renderDeletedKeysTable(delKeys, vaultUri = "", searchFilter = "") {
+  const tbody = document.getElementById("del-keys-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const filterLower = (searchFilter || "").trim().toLowerCase();
+  const filtered = (delKeys || []).filter(k =>
+    !filterLower ||
+    (k.name && k.name.toLowerCase().includes(filterLower)) ||
+    (k.recovery_id && k.recovery_id.toLowerCase().includes(filterLower)) ||
+    (k.key_type && k.key_type.toLowerCase().includes(filterLower))
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No deleted cryptographic keys found in this vault</td></tr>`;
+    return;
+  }
+
+  filtered.forEach((key, index) => {
+    const tr = document.createElement("tr");
+    const recId = key.recovery_id || "";
+    const shortRecId = recId ? (recId.length > 35 ? "..." + recId.substring(recId.lastIndexOf('/')) : recId) : "N/A";
+    const keyType = key.key_type || key.type || "RSA";
+
+    tr.innerHTML = `
+      <td>
+        <span class="key-name" style="color: #f87171;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          ${escapeHtml(key.name)}
+        </span>
+      </td>
+      <td><span style="font-family: var(--font-mono); color: #cbd5e1;">${escapeHtml(keyType)}</span></td>
+      <td style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem;">
+        ${escapeHtml(key.deleted_date || "N/A")}
+      </td>
+      <td>
+        <span class="tag tag-warning font-mono" style="font-size: 0.75rem;">
+          ${escapeHtml(key.scheduled_purge_date || "N/A")}
+        </span>
+      </td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(recId)}">
+            ${escapeHtml(shortRecId)}
+          </span>
+          ${recId ? `
+            <button class="action-icon-btn" onclick="copyText('${escapeHtml(recId)}', 'Recovery ID copied')" title="Copy Recovery ID">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          ` : ''}
+        </div>
+      </td>
+      <td>
+        <button class="action-btn-sm action-btn-recover" id="btn-recover-key-${index}" onclick="recoverKey('${escapeHtml(vaultUri)}', '${escapeHtml(key.name)}', this)" title="Restore soft-deleted key back into active inventory">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>Recover Key</span>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+window.renderDeletedKeysTable = renderDeletedKeysTable;
+
+async function recoverKey(vaultUri, keyName, btnEl) {
+  if (!vaultUri || !keyName) {
+    showToast("Invalid vault or key name");
+    return;
+  }
+
+  const origHtml = btnEl ? btnEl.innerHTML : "";
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg>
+      <span>Recovering...</span>
+    `;
+  }
+
+  showToast(`Initiating recovery for key "${keyName}"...`);
+
+  try {
+    const res = await fetch("/api/keyvault/recover-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vault_url: vaultUri, key_name: keyName })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Failed to recover key from Key Vault");
+    }
+
+    showToast(`Key "${keyName}" recovered successfully!`);
+
+    // Refresh dynamic data so active keys list displays the newly restored key
+    fetch("/api/overview")
+      .then(r => r.json())
+      .then(freshData => {
+        if (freshData && freshData.success && typeof window.syncDashboardData === "function") {
+          window.syncDashboardData(freshData);
+        }
+      })
+      .catch(() => {});
+
+  } catch (err) {
+    console.error("Key recovery error:", err);
+    showToast(`Error: ${err.message}`);
+    alert(`Could not recover key "${keyName}":\n\n${err.message}`);
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = origHtml;
+    }
+  }
+}
+window.recoverKey = recoverKey;
+
 function openSecretModal(data) {
   const backdrop = document.getElementById("secret-modal-backdrop");
   if (!backdrop) return;
@@ -1710,6 +1853,7 @@ function exportVaultSecretsJson() {
     secrets: vault.secrets || [],
     deleted_secrets: vault.deleted_secrets || [],
     keys: vault.keys || [],
+    deleted_keys: vault.deleted_keys || [],
     certificates: vault.certificates || []
   };
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
@@ -1956,6 +2100,17 @@ function setupEventListeners() {
       const vault = getActiveVault();
       if (vault) {
         renderDeletedSecretsTable(vault.deleted_secrets || [], vault.uri, e.target.value);
+      }
+    });
+  }
+
+  // Deleted Keys Search
+  const delKeySearchInput = document.getElementById("del-key-search-input");
+  if (delKeySearchInput) {
+    delKeySearchInput.addEventListener("input", (e) => {
+      const vault = getActiveVault();
+      if (vault) {
+        renderDeletedKeysTable(vault.deleted_keys || [], vault.uri, e.target.value);
       }
     });
   }
