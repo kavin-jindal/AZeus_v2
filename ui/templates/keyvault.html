@@ -164,6 +164,16 @@
       <span>Deleted Secrets</span>
       <span class="tab-count" id="count-del-secrets">0</span>
     </button>
+
+    <button class="tab-btn" data-tab="del-keys">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="7.5" cy="15.5" r="5.5"></circle>
+        <path d="m21 2-9.6 9.6"></path>
+        <path d="m15.5 7.5 3 3"></path>
+      </svg>
+      <span>Deleted Keys</span>
+      <span class="tab-count" id="count-del-keys">0</span>
+    </button>
   </div>
 
   <!-- Tab 1: Secrets -->
@@ -271,6 +281,41 @@
     </div>
   </div>
 
+  <!-- Tab 5: Deleted Keys -->
+  <div class="tab-pane" id="tab-del-keys">
+    <div class="data-table-container">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="del-key-search-input" placeholder="Search deleted key name or recovery ID...">
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-amber);">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          Soft-deleted cryptographic keys can be restored back into the active key vault inventory.
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Deleted Key Name</th>
+            <th>Key Type</th>
+            <th>Deleted Date</th>
+            <th>Scheduled Purge Date</th>
+            <th>Recovery ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="del-keys-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Recovered Secret Value Modal -->
   <div id="secret-modal-backdrop" class="modal-backdrop" style="display: none;">
     <div class="modal-card">
@@ -340,6 +385,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/keyvault.js?v=6.0"></script>
 <script>
   {% if vaults_data is defined and vaults_data and vaults_data|length > 0 %}
   try {
