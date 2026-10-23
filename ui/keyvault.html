@@ -26,10 +26,10 @@
         <button class="vault-dropdown-toggle" id="vault-dropdown-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" title="Select a Key Vault" onclick="toggleVaultDropdown(event)">
           <div class="vault-dropdown-toggle-left">
             <span class="status-dot accessible" id="vault-dd-status-dot"></span>
-            <span class="vault-dd-name font-mono" id="vault-dd-selected-name">kv-prod-backend-eus</span>
+            <span class="vault-dd-name font-mono" id="vault-dd-selected-name">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].name }}{% else %}No Key Vaults Discovered{% endif %}</span>
           </div>
           <div class="vault-dropdown-toggle-right">
-            <span class="vault-dd-badge" id="vault-dd-selected-badge">5 secrets</span>
+            <span class="vault-dd-badge" id="vault-dd-selected-badge">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].secrets|length }} secrets{% else %}0 secrets{% endif %}</span>
             <svg class="vault-dd-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
@@ -44,7 +44,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input type="text" id="vault-dropdown-search-input" placeholder="Filter key vaults..." autocomplete="off">
-            <span class="vault-dropdown-count" id="vault-dropdown-count">3 vaults</span>
+            <span class="vault-dropdown-count" id="vault-dropdown-count">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data|length }} vaults{% else %}0 vaults{% endif %}</span>
           </div>
 
           <div class="vault-dropdown-items" id="vault-dropdown-options">
@@ -67,19 +67,19 @@
             <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
           </svg>
-          <span id="vault-quick-rg">rg-core-services-prod</span>
+          <span id="vault-quick-rg">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].resourceGroup or vaults_data[0].location }}{% else %}N/A{% endif %}</span>
         </div>
         <div class="vault-meta-chip" title="Deployment Region">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path>
           </svg>
-          <span id="vault-quick-region">eastus</span>
+          <span id="vault-quick-region">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].location }}{% else %}N/A{% endif %}</span>
         </div>
         <div class="vault-meta-chip" id="vault-quick-status-chip" title="Access Status">
           <span class="status-dot accessible" id="vault-quick-status-dot"></span>
-          <span id="vault-quick-status">Accessible</span>
+          <span id="vault-quick-status">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].status|capitalize }}{% else %}N/A{% endif %}</span>
         </div>
       </div>
     </div>
@@ -95,11 +95,11 @@
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </div>
-        <h2 id="vault-title">kv-prod-backend-eus</h2>
+        <h2 id="vault-title">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].name }}{% else %}No Key Vault Selected{% endif %}</h2>
       </div>
 
       <div class="uri-pill" id="vault-uri-box" onclick="copyUri()" title="Click to copy URI">
-        <span id="vault-uri-text">https://kv-prod-backend-eus.vault.azure.net/</span>
+        <span id="vault-uri-text">{% if vaults_data and vaults_data|length > 0 %}{{ vaults_data[0].uri }}{% else %}No URI available{% endif %}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -108,7 +108,20 @@
     </div>
 
     <div class="config-tags" id="config-tags">
-      <!-- Rendered dynamically -->
+      {% if vaults_data and vaults_data|length > 0 %}
+        <span class="tag tag-neutral">
+          Auth: {{ 'Azure RBAC' if vaults_data[0].rbacAuth else 'Vault Access Policies' }}
+        </span>
+        <span class="tag {{ 'tag-warning' if 'Disabled' in vaults_data[0].softDelete else 'tag-cyan' }}">
+          Soft Delete: {{ vaults_data[0].softDelete }}
+        </span>
+        <span class="tag {{ 'tag-cyan' if vaults_data[0].purgeProtection == 'Enabled' else 'tag-neutral' }}">
+          Purge Protection: {{ vaults_data[0].purgeProtection }}
+        </span>
+        <span class="tag tag-neutral">
+          Network: {{ vaults_data[0].publicNetwork }}
+        </span>
+      {% endif %}
     </div>
   </div>
 
@@ -140,6 +153,17 @@
       <span>Certificates</span>
       <span class="tab-count" id="count-certs">0</span>
     </button>
+
+    <button class="tab-btn" data-tab="del-secrets">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+      <span>Deleted Secrets</span>
+      <span class="tab-count" id="count-del-secrets">0</span>
+    </button>
   </div>
 
   <!-- Tab 1: Secrets -->
@@ -149,7 +173,7 @@
         <div class="table-search">
           <input type="text" id="secret-search-input" placeholder="Search secret identifier or content-type...">
         </div>
-        <button class="export-btn" onclick="showToast('Exported secrets to keyvault_secrets.json')">
+        <button class="export-btn" onclick="exportVaultSecretsJson()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -210,6 +234,105 @@
           <!-- Rendered by app.js -->
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Tab 4: Deleted Secrets -->
+  <div class="tab-pane" id="tab-del-secrets">
+    <div class="data-table-container">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="del-secret-search-input" placeholder="Search deleted secret name or recovery ID...">
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-amber);">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          Soft-deleted secrets retain history and can be recovered to inspect their plaintext values.
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Deleted Secret Name</th>
+            <th>Deleted Date</th>
+            <th>Scheduled Purge Date</th>
+            <th>Recovery ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="del-secrets-tbody">
+          <!-- Rendered by app.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recovered Secret Value Modal -->
+  <div id="secret-modal-backdrop" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="card-icon-pill" style="color: var(--accent-emerald);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-1-1l-3 3m5 0l-3-3m-6 6l-7 7a2 2 0 0 0 3 3l7-7m-3-3l3 3"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 id="modal-secret-title">Secret Recovered Successfully</h3>
+            <span id="modal-secret-subtitle" class="font-mono" style="font-size: 0.75rem; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <button class="action-icon-btn" onclick="closeSecretModal()" title="Close dialog">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-meta-row">
+          <div class="modal-meta-item">
+            <span class="meta-label">Status</span>
+            <span class="tag tag-cyan" id="modal-secret-status">Recovered & Active</span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="meta-label">Content Type</span>
+            <span class="badge-tag" id="modal-secret-type">secret</span>
+          </div>
+          <div class="modal-meta-item">
+            <span class="meta-label">Updated</span>
+            <span id="modal-secret-updated" style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1;"></span>
+          </div>
+        </div>
+
+        <div class="secret-display-section">
+          <label class="meta-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Secret Plaintext Value</span>
+            <span id="modal-value-length" style="color: var(--text-muted); font-size: 0.72rem;"></span>
+          </label>
+          <div class="secret-value-viewer">
+            <textarea id="modal-secret-value" readonly rows="4" class="secret-textarea font-mono"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="action-btn-sm" onclick="copyRecoveredSecretValue()" style="background: rgba(56, 189, 248, 0.15); border-color: var(--accent-cyan); color: #fff;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy Secret Value
+        </button>
+        <button class="action-btn-sm" onclick="closeSecretModal()">
+          Close
+        </button>
+      </div>
     </div>
   </div>
 

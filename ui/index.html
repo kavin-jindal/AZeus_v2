@@ -35,7 +35,7 @@
           </svg>
           Inspect Key Vaults
         </a>
-        <button class="primary-btn" onclick="showToast('Re-scan verified: 3 vaults, 10 secrets loaded')">
+        <button class="primary-btn" onclick="refreshEnumeration()" id="btn-refresh-enum">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
@@ -63,13 +63,13 @@
           <span class="status-pill active-pill">Active</span>
         </div>
 
-        <div class="id-card-title" id="dash-tenant-name">{{ tenant_data["tenant_name"] if tenant_data is defined and tenant_data else (info.tenant_name if info is defined and info and info.tenant_name else '') }}</div>
+        <div class="id-card-title" id="dash-tenant-name">{{ tenant_data["tenant_name"] if tenant_data is defined and tenant_data and tenant_data["tenant_name"] else (tenant_data["tenant_domain"] if tenant_data is defined and tenant_data and tenant_data["tenant_domain"] else 'Connected Directory') }}</div>
 
         <div class="id-meta-list">
           <div class="id-meta-item">
             <span class="id-meta-key">Tenant ID:</span>
             <span class="id-meta-val font-mono copyable-val" onclick="copyTenantId()" title="Click to copy">
-              <span id="dash-tenant-id">{{ tenant_data["tenant_id"] if tenant_data is defined and tenant_data else (info.tenant_id if info is defined and info and info.tenant_id else '00000000-0000-0000-0000-000000000000') }}</span>
+              <span id="dash-tenant-id">{{ tenant_data["tenant_id"] if tenant_data is defined and tenant_data and tenant_data["tenant_id"] else 'N/A' }}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -79,17 +79,17 @@
 
           <div class="id-meta-item">
             <span class="id-meta-key">Primary Domain:</span>
-            <span class="id-meta-val" id="dash-primary-domain">{{ tenant_data["tenant_domain"] if tenant_data is defined and tenant_data else (info.tenant_domain if info is defined and info and info.tenant_domain else 'contoso.onmicrosoft.com') }}</span>
+            <span class="id-meta-val" id="dash-primary-domain">{{ tenant_data["tenant_domain"] if tenant_data is defined and tenant_data and tenant_data["tenant_domain"] else 'N/A' }}</span>
           </div>
 
           <div class="id-meta-item">
             <span class="id-meta-key">Directory SKU:</span>
-            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Unavailable</span></span>
+            <span class="id-meta-val"><span class="tag tag-indigo" id="dash-tenant-sku">Standard</span></span>
           </div>
 
           <div class="id-meta-item">
             <span class="id-meta-key">Cloud Instance:</span>
-            <span class="id-meta-val font-mono">AzureCloud (Commercial)</span>
+            <span class="id-meta-val font-mono" id="dash-cloud-instance">{{ sub_data.get("cloud_name", "AzureCloud") if sub_data is defined and sub_data else "AzureCloud" }}</span>
           </div>
         </div>
       </div>
@@ -105,16 +105,16 @@
             </svg>
             <span>Azure Subscription</span>
           </div>
-          <span class="status-pill active-pill" id="dash-sub-state">Active</span>
+          <span class="status-pill active-pill" id="dash-sub-state">{{ sub_data.get("sub_state", "Active") if sub_data is defined and sub_data else "Active" }}</span>
         </div>
 
-        <div class="id-card-title" id="dash-sub-name">{{sub_data["sub_name"]}}</div>
+        <div class="id-card-title" id="dash-sub-name">{{ sub_data["sub_name"] if sub_data is defined and sub_data and sub_data["sub_name"] else 'Azure Subscription' }}</div>
 
         <div class="id-meta-list">
           <div class="id-meta-item">
             <span class="id-meta-key">Subscription ID:</span>
             <span class="id-meta-val font-mono copyable-val" onclick="copySubscriptionId()" title="Click to copy">
-              <span id="dash-sub-id">{{sub_data["sub_id"]}}</span>
+              <span id="dash-sub-id">{{ sub_data["sub_id"] if sub_data is defined and sub_data and sub_data["sub_id"] else 'N/A' }}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -124,17 +124,17 @@
 
           <div class="id-meta-item">
             <span class="id-meta-key">Management Group:</span>
-            <span class="id-meta-val font-mono" id="dash-mgmt-group">Unavailable</span>
+            <span class="id-meta-val font-mono" id="dash-mgmt-group">Tenant Root</span>
           </div>
 
           <div class="id-meta-item">
-            <span class="id-meta-key">Billing / Offer:</span>
-            <span class="id-meta-val" id="dash-billing-tier">Unavailable</span>
+            <span class="id-meta-key">Subscription Status:</span>
+            <span class="id-meta-val" id="dash-billing-tier">{{ sub_data.get("sub_state", "Active") if sub_data is defined and sub_data else "Active" }}</span>
           </div>
 
           <div class="id-meta-item">
-            <span class="id-meta-key">Target Region:</span>
-            <span class="id-meta-val"><span class="tag tag-cyan">Unavailable</span></span>
+            <span class="id-meta-key">Primary Region:</span>
+            <span class="id-meta-val"><span class="tag tag-cyan" id="dash-primary-region">{{ metrics.primary_location if metrics is defined and metrics and metrics.primary_location else 'Global' }}</span></span>
           </div>
         </div>
       </div>
@@ -147,7 +147,7 @@
     <div class="stat-chip chip-vaults" onclick="navigateTo('vaults')" style="cursor: pointer;">
       <div>
         <div class="stat-label">Discovered Key Vaults</div>
-        <div class="stat-value" id="dash-stat-vaults">3</div>
+        <div class="stat-value" id="dash-stat-vaults">{{ metrics.vaults_count if metrics is defined and metrics else (vaults_data|length if vaults_data is defined and vaults_data else 0) }}</div>
       </div>
       <div class="stat-chip-icon icon-cyan">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -160,7 +160,7 @@
     <div class="stat-chip chip-secrets" onclick="navigateTo('vaults')" style="cursor: pointer;">
       <div>
         <div class="stat-label">Accessible Secrets</div>
-        <div class="stat-value" id="dash-stat-secrets">10</div>
+        <div class="stat-value" id="dash-stat-secrets">{{ metrics.secrets_count if metrics is defined and metrics else 0 }}</div>
       </div>
       <div class="stat-chip-icon icon-emerald">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -172,7 +172,7 @@
     <div class="stat-chip chip-keys" onclick="navigateTo('vaults')" style="cursor: pointer;">
       <div>
         <div class="stat-label">Cryptographic Keys</div>
-        <div class="stat-value" id="dash-stat-keys">5</div>
+        <div class="stat-value" id="dash-stat-keys">{{ metrics.keys_count if metrics is defined and metrics else 0 }}</div>
       </div>
       <div class="stat-chip-icon icon-amber">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,7 +186,7 @@
     <div class="stat-chip chip-certs" onclick="navigateTo('vaults')" style="cursor: pointer;">
       <div>
         <div class="stat-label">Certificates</div>
-        <div class="stat-value" id="dash-stat-certs">3</div>
+        <div class="stat-value" id="dash-stat-certs">{{ metrics.certs_count if metrics is defined and metrics else 0 }}</div>
       </div>
       <div class="stat-chip-icon icon-violet">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -286,4 +286,29 @@
   </div>
 
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function() {
+    try {
+      const liveData = {
+        sub_data: {{ (sub_data or {}) | tojson }},
+        tenant_data: {{ (tenant_data or {}) | tojson }},
+        vaults: {{ (vaults_data or []) | tojson }},
+        groups: {{ (groups or []) | tojson }},
+        resources: {{ (resource or []) | tojson }},
+        metrics: {{ (metrics or {}) | tojson }},
+        username: {{ (username or '') | tojson }}
+      };
+      if (typeof window.syncDashboardData === 'function') {
+        window.syncDashboardData(liveData);
+      } else {
+        window._pendingDashboardData = liveData;
+      }
+    } catch (err) {
+      console.warn("Could not sync live dashboard data:", err);
+    }
+  })();
+</script>
 {% endblock %}

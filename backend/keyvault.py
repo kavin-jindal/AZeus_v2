@@ -15,11 +15,56 @@ class KeyVault:
         vaults = []
         try:
             for vault in self.vault_client.vaults.list():
+                rg_name = ""
+                if vault.id:
+                    parts = vault.id.split("/")
+                    if "resourceGroups" in parts:
+                        idx = parts.index("resourceGroups")
+                        if idx + 1 < len(parts):
+                            rg_name = parts[idx + 1]
+
+                soft_delete = "Disabled"
+                purge_protection = "Disabled"
+                public_network = "Enabled"
+                rbac_auth = False
+
+                if rg_name:
+                    try:
+                        detail = self.vault_client.vaults.get(rg_name, vault.name)
+                        props = getattr(detail, "properties", None)
+                        if props:
+                            is_soft_del = getattr(props, "enable_soft_delete", False)
+                            days = getattr(props, "soft_delete_retention_in_days", None)
+                            if is_soft_del:
+                                soft_delete = f"Enabled ({days}d)" if days else "Enabled"
+                            else:
+                                soft_delete = "Disabled"
+
+                            is_purge_prot = getattr(props, "enable_purge_protection", False)
+                            purge_protection = "Enabled" if is_purge_prot else "Disabled"
+
+                            rbac_auth = bool(getattr(props, "enable_rbac_authorization", False))
+
+                            pna = getattr(props, "public_network_access", None)
+                            if pna:
+                                public_network = str(pna)
+                            elif getattr(props, "network_acls", None):
+                                acls = props.network_acls
+                                default_act = getattr(acls, "default_action", "Allow")
+                                public_network = "Disabled" if default_act == "Deny" else "Enabled"
+                    except Exception as err:
+                        print(f"Could not get properties for vault {vault.name}: {err}")
+
                 vaults.append({
                     "name": vault.name,
                     "id": vault.id,
                     "location": vault.location,
-                    "url": f"https://{vault.name}.vault.azure.net"
+                    "url": f"https://{vault.name}.vault.azure.net",
+                    "resourceGroup": rg_name,
+                    "softDelete": soft_delete,
+                    "purgeProtection": purge_protection,
+                    "rbacAuth": rbac_auth,
+                    "publicNetwork": public_network
                 })
         except Exception as e:
             print(f"Error listing vaults: {e}")
@@ -47,7 +92,42 @@ class KeyVault:
         except Exception as e:
             print(f"Error getting secrets from {vault_url}: {e}")
         return secrets
+    def get_deleted_secrets(self, vault_url=None):
+        del_secrets=[]
+        if not vault_url:
+            return del_secrets
+        try:
+            client = SecretClient(credential=self.cred, vault_url=vault_url)
+            for secret in client.list_deleted_secrets():
+                del_secrets.append({
+                    "name": secret.name,
+                    "id": secret.id,
+                    "recovery_id": getattr(secret, "recovery_id", ""),
+                    "scheduled_purge_date": str(secret.scheduled_purge_date.date()) if hasattr(secret, "scheduled_purge_date") and secret.scheduled_purge_date else "",
+                    "deleted_date": str(secret.deleted_date.date()) if hasattr(secret, "deleted_date") and secret.deleted_date else ""
+                })
+        except Exception as e:
+            print(f"Error getting deleted secrets from {vault_url}: {e}")
+        return del_secrets
 
+    def recover_and_get_secret(self, vault_url=None, secret_name=None):
+        if not vault_url or not secret_name:
+            return {"success": False, "error": "Vault URL and secret name are required"}
+        try:
+            client = SecretClient(credential=self.cred, vault_url=vault_url)
+            poller = client.begin_recover_deleted_secret(secret_name)
+            poller.result()
+            secret_obj = client.get_secret(secret_name)
+            return {
+                "success": True,
+                "name": secret_name,
+                "value": secret_obj.value if secret_obj else "",
+                "content_type": getattr(secret_obj.properties, "content_type", "") or "secret",
+                "updated": str(secret_obj.properties.updated_on.date()) if secret_obj and secret_obj.properties and secret_obj.properties.updated_on else ""
+            }
+        except Exception as e:
+            print(f"Error recovering secret {secret_name} from {vault_url}: {e}")
+            return {"success": False, "error": str(e)}
     def get_certs(self, vault_url=None):
         certs = []
         if not vault_url:
