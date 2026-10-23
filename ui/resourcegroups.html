@@ -95,7 +95,7 @@
         </div>
         <div class="vault-meta-chip" id="rg-quick-status-chip" title="Group Security Status">
           <span class="status-dot accessible" id="rg-quick-status-dot"></span>
-          <span id="rg-quick-status">Healthy</span>
+          <span id="rg-quick-status">{% if groups and groups|length > 0 %}Accessible{% else %}N/A{% endif %}</span>
         </div>
       </div>
     </div>
@@ -127,7 +127,7 @@
       {% if groups and groups|length > 0 %}
         <span class="tag tag-cyan">Location: {{ groups[0].location }}</span>
         <span class="tag tag-neutral">Provisioning: {{ groups[0].properties.provisioning_state if groups[0].properties else 'Succeeded' }}</span>
-        <span class="tag tag-neutral">Security Scope: Healthy</span>
+        <span class="tag tag-neutral">Security Scope: Accessible</span>
       {% else %}
         <span class="tag tag-neutral">No Active Group</span>
       {% endif %}
