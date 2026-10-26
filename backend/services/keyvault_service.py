@@ -7,9 +7,18 @@ active secret enumeration, soft-deleted secret discovery, and recovery.
 from ..azure_clients.keyvault_client import AzureKeyVaultClient
 
 class KeyVaultService:
-    def __init__(self, cred, sub_id):
+    def __init__(self, cred, sub_id, tenant_id=None):
         self.cred = cred
         self.sub_id = sub_id
+        self.tenant_id = tenant_id
+        if not self.tenant_id:
+            try:
+                from .subscription_service import SubscriptionService
+                sub_svc = SubscriptionService(cred=self.cred)
+                t_data = sub_svc.get_tenant_data()
+                self.tenant_id = t_data.get("tenant_id")
+            except Exception:
+                pass
         self.client = AzureKeyVaultClient(cred, sub_id)
 
     def get_vaults(self):
@@ -216,4 +225,81 @@ class KeyVaultService:
             }
         except Exception as e:
             print(f"Error recovering key {key_name} from {vault_url}: {e}")
+            return {"success": False, "error": str(e)}
+
+    def get_deleted_vaults(self):
+        """Retrieves soft-deleted key vaults in the subscription using list_deleted."""
+        del_vaults = []
+        try:
+            for dv in self.client.list_deleted_vaults():
+                props = getattr(dv, "properties", None)
+                vault_id = getattr(props, "vault_id", "") if props else ""
+                loc = getattr(props, "location", "") if props else getattr(dv, "location", "")
+                del_date = str(props.deletion_date.date()) if props and hasattr(props, "deletion_date") and props.deletion_date else ""
+                purge_date = str(props.scheduled_purge_date.date()) if props and hasattr(props, "scheduled_purge_date") and props.scheduled_purge_date else ""
+                purge_protect = "Enabled" if props and getattr(props, "purge_protection_enabled", False) else "Disabled"
+                tags = getattr(props, "tags", {}) or {}
+
+                rg_name = ""
+                if vault_id:
+                    parts = vault_id.split("/")
+                    lower_parts = [p.lower() for p in parts]
+                    if "resourcegroups" in lower_parts:
+                        idx = lower_parts.index("resourcegroups")
+                        if idx + 1 < len(parts):
+                            rg_name = parts[idx + 1]
+
+                del_vaults.append({
+                    "name": dv.name,
+                    "id": getattr(dv, "id", "") or vault_id,
+                    "vault_id": vault_id,
+                    "resourceGroup": rg_name,
+                    "location": loc,
+                    "deletion_date": del_date,
+                    "scheduled_purge_date": purge_date,
+                    "purgeProtection": purge_protect,
+                    "tags": tags
+                })
+        except Exception as e:
+            print(f"Error listing deleted vaults: {e}")
+        return del_vaults
+
+    def recover_deleted_vault(self, vault_name, resource_group_name=None, location=None):
+        """Restores a soft-deleted Key Vault instance."""
+        if not vault_name:
+            return {"success": False, "error": "Vault name is required"}
+        try:
+            # If resource_group_name or location are missing, attempt resolution from list_deleted
+            if not resource_group_name or not location:
+                for dv in self.get_deleted_vaults():
+                    if dv["name"].lower() == vault_name.lower():
+                        if not resource_group_name and dv.get("resourceGroup"):
+                            resource_group_name = dv["resourceGroup"]
+                        if not location and dv.get("location"):
+                            location = dv["location"]
+                        break
+
+            if not resource_group_name:
+                return {"success": False, "error": "Resource group name could not be resolved for this vault"}
+
+            if not location:
+                location = "eastus"
+
+            poller = self.client.recover_vault(
+                resource_group_name=resource_group_name,
+                vault_name=vault_name,
+                location=location,
+                tenant_id=self.tenant_id
+            )
+            vault_obj = poller.result()
+            return {
+                "success": True,
+                "name": vault_name,
+                "id": getattr(vault_obj, "id", ""),
+                "resourceGroup": resource_group_name,
+                "location": location,
+                "status": "Recovered"
+            }
+        except Exception as e:
+            print(f"Error restoring key vault {vault_name}: {e}")
             return {"success": False, "error": str(e)}

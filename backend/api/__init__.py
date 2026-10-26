@@ -19,6 +19,7 @@ _cache = {
     "resources": None,
     "vaults_data": None,
     "vault_list": None,
+    "deleted_vaults": None,
     "metrics": None
 }
 
@@ -29,7 +30,7 @@ def get_azure_data(force_refresh=False):
     """
     global _cache
 
-    if not force_refresh and _cache["vaults_data"] is not None:
+    if not force_refresh and _cache["vaults_data"] is not None and _cache["deleted_vaults"] is not None:
         return _cache
 
     cred = get_azure_credential()
@@ -51,12 +52,14 @@ def get_azure_data(force_refresh=False):
         except Exception as e:
             print(f"Error fetching resource groups: {e}")
 
-    # Discover Key Vaults, active secrets, deleted secrets, keys, deleted keys, and certificates
+    # Discover Key Vaults, active secrets, deleted secrets, keys, deleted keys, certificates, and deleted vaults
     vault_list = []
     vaults_data = []
+    deleted_vaults = []
     if sub_id:
         try:
-            kv_service = KeyVaultService(cred=cred, sub_id=sub_id)
+            kv_service = KeyVaultService(cred=cred, sub_id=sub_id, tenant_id=tenant_data.get("tenant_id"))
+            deleted_vaults = kv_service.get_deleted_vaults()
             vault_list = kv_service.get_vaults()
             for vault in vault_list:
                 v_url = vault.get("url") or f"https://{vault['name']}.vault.azure.net"
@@ -97,7 +100,7 @@ def get_azure_data(force_refresh=False):
         except Exception as e:
             print(f"Error fetching key vault data: {e}")
 
-    metrics = sub_service.compute_metrics(vaults_data, groups, resources)
+    metrics = sub_service.compute_metrics(vaults_data, groups, resources, deleted_vaults)
 
     _cache = {
         "sub_data": sub_data,
@@ -107,6 +110,7 @@ def get_azure_data(force_refresh=False):
         "resources": resources,
         "vaults_data": vaults_data,
         "vault_list": vault_list,
+        "deleted_vaults": deleted_vaults,
         "metrics": metrics
     }
 
