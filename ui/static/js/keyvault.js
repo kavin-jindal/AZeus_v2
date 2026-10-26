@@ -26,6 +26,18 @@
       }
     },
 
+    copySecretByIndex: function(index) {
+      if (typeof window.copySecretByIndex === 'function') {
+        window.copySecretByIndex(index);
+      }
+    },
+
+    inspectSecret: function(index) {
+      if (typeof window.inspectSecretByIndex === 'function') {
+        window.inspectSecretByIndex(index);
+      }
+    },
+
     recoverAndReveal: function(vaultUri, secretName, btnEl) {
       if (typeof window.recoverAndRevealSecret === 'function') {
         return window.recoverAndRevealSecret(vaultUri, secretName, btnEl);
@@ -35,6 +47,18 @@
     recoverKey: function(vaultUri, keyName, btnEl) {
       if (typeof window.recoverKey === 'function') {
         return window.recoverKey(vaultUri, keyName, btnEl);
+      }
+    },
+
+    restoreVault: function(vaultName, resourceGroup, location, btnEl) {
+      if (typeof window.restoreKeyVault === 'function') {
+        return window.restoreKeyVault(vaultName, resourceGroup, location, btnEl);
+      }
+    },
+
+    switchSubTab: function(group, target) {
+      if (typeof window.switchSubTab === 'function') {
+        return window.switchSubTab(group, target);
       }
     },
 

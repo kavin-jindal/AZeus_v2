@@ -19,6 +19,7 @@ async def keyvault():
         tenant_data=data["tenant_data"],
         vault_list=data["vault_list"],
         vaults_data=data["vaults_data"],
+        deleted_vaults=data.get("deleted_vaults", []),
         username=data["user_info"]["user_name"],
         tenant_domain=data["tenant_data"]["tenant_domain"],
         groups=data["groups"],
@@ -77,3 +78,52 @@ async def api_vaults():
         "success": True,
         "vaults": data["vaults_data"]
     }
+
+@keyvault_bp.route("/api/keyvault/deleted-vaults")
+async def api_deleted_vaults():
+    try:
+        data = get_azure_data()
+        return {
+            "success": True,
+            "deleted_vaults": data.get("deleted_vaults", [])
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e), "deleted_vaults": []}
+
+@keyvault_bp.route("/api/keyvault/recover-vault", methods=["POST"])
+async def api_recover_vault():
+    try:
+        payload = await request.get_json()
+        if not payload:
+            return {"success": False, "error": "No JSON payload provided"}
+        vault_name = payload.get("vault_name")
+        resource_group = payload.get("resource_group")
+        location = payload.get("location")
+        if not vault_name:
+            return {"success": False, "error": "vault_name is required"}
+
+        data = get_azure_data()
+        sub_id = data["sub_data"]["sub_id"]
+        cred = get_azure_credential()
+        tenant_id = data.get("tenant_data", {}).get("tenant_id")
+
+        if not resource_group:
+            for dv in data.get("deleted_vaults", []):
+                if dv.get("name") == vault_name and dv.get("resourceGroup"):
+                    resource_group = dv.get("resourceGroup")
+                    if not location:
+                        location = dv.get("location")
+                    break
+
+        if not resource_group:
+            groups = data.get("groups", [])
+            if groups:
+                resource_group = groups[0].get("name")
+
+        keyv = KeyVaultService(cred=cred, sub_id=sub_id, tenant_id=tenant_id)
+        res = keyv.recover_deleted_vault(vault_name=vault_name, resource_group_name=resource_group, location=location)
+        if res.get("success"):
+            get_azure_data(force_refresh=True)
+        return res
+    except Exception as e:
+        return {"success": False, "error": str(e)}

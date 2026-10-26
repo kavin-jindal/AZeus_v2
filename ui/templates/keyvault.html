@@ -6,6 +6,161 @@
 {% block nav_rgs %}{% endblock %}
 {% block nav_vaults %}active{% endblock %}
 
+{% block extra_head %}
+<style>
+  /* Sub-tab Pill Switcher */
+  .subtab-switcher {
+    display: inline-flex !important;
+    align-items: center !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    padding: 3px !important;
+    gap: 3px !important;
+  }
+
+  .subtab-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: #94a3b8 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    padding: 0.35rem 0.8rem !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    outline: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+  }
+
+  .subtab-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .subtab-btn.active {
+    background: rgba(56, 189, 248, 0.16) !important;
+    color: #ffffff !important;
+    border-color: rgba(56, 189, 248, 0.35) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.15) !important;
+  }
+
+  .subtab-btn.danger-pill:hover {
+    color: #fca5a5 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+  }
+
+  .subtab-btn.danger-pill.active {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15) !important;
+  }
+
+  .subtab-badge {
+    font-size: 0.68rem !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    padding: 0.05rem 0.45rem !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #64748b !important;
+  }
+
+  .subtab-btn.active .subtab-badge {
+    background: rgba(56, 189, 248, 0.3) !important;
+    color: #38bdf8 !important;
+  }
+
+  .subtab-btn.danger-pill.active .subtab-badge {
+    background: rgba(239, 68, 68, 0.3) !important;
+    color: #fca5a5 !important;
+  }
+
+  /* Subpane toggling */
+  .subpane {
+    display: none !important;
+  }
+
+  .subpane.active {
+    display: block !important;
+  }
+
+  .table-notice-banner {
+    padding: 0.65rem 1.25rem !important;
+    background: rgba(245, 158, 11, 0.06) !important;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.15) !important;
+    font-size: 0.78rem !important;
+    color: #94a3b8 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .table-notice-banner svg {
+    color: #fbbf24 !important;
+    flex-shrink: 0 !important;
+  }
+  /* Table Layout & Large Secret Protection */
+  .data-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+  }
+
+  .data-table th,
+  .data-table td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .secret-value-box {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .secret-mask {
+    background: rgba(255, 255, 255, 0.04) !important;
+    padding: 0.25rem 0.6rem !important;
+    border-radius: 6px !important;
+    color: #64748b !important;
+    letter-spacing: 0.15em !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    min-width: 120px !important;
+    max-width: 360px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    user-select: none !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.8rem !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    box-sizing: border-box !important;
+    flex-shrink: 1 !important;
+  }
+
+  .secret-mask.secret-revealed {
+    background: rgba(56, 189, 248, 0.12) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.3) !important;
+    letter-spacing: normal !important;
+    user-select: all !important;
+    max-width: 360px !important;
+    cursor: pointer !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- VIEW 2: KEY VAULTS ENUMERATION VIEW -->
 <section class="view-panel active" id="view-vaults">
@@ -125,7 +280,7 @@
     </div>
   </div>
 
-  <!-- Navigation Tabs: Secrets, Keys, Certificates -->
+  <!-- Navigation Tabs: Secrets, Keys, Certificates, Key Vaults -->
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="secrets">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -154,83 +309,188 @@
       <span class="tab-count" id="count-certs">0</span>
     </button>
 
-    <button class="tab-btn" data-tab="del-secrets">
+    <button class="tab-btn" data-tab="vaults">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        <line x1="10" y1="11" x2="10" y2="17"></line>
-        <line x1="14" y1="11" x2="14" y2="17"></line>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
       </svg>
-      <span>Deleted Secrets</span>
-      <span class="tab-count" id="count-del-secrets">0</span>
-    </button>
-
-    <button class="tab-btn" data-tab="del-keys">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="7.5" cy="15.5" r="5.5"></circle>
-        <path d="m21 2-9.6 9.6"></path>
-        <path d="m15.5 7.5 3 3"></path>
-      </svg>
-      <span>Deleted Keys</span>
-      <span class="tab-count" id="count-del-keys">0</span>
+      <span>Key Vaults</span>
+      <span class="tab-count" id="count-vaults">{% if vaults_data %}{{ vaults_data|length }}{% else %}0{% endif %}</span>
     </button>
   </div>
 
-  <!-- Tab 1: Secrets -->
+  <!-- Tab 1: Secrets (Active & Deleted merged with sub-tab switch) -->
   <div class="tab-pane active" id="tab-secrets">
     <div class="data-table-container">
       <div class="table-toolbar">
-        <div class="table-search">
-          <input type="text" id="secret-search-input" placeholder="Search secret identifier or content-type...">
+        <div class="toolbar-left" style="display: flex; align-items: center; gap: 0.85rem;">
+          <div class="subtab-switcher" role="tablist" aria-label="Secrets View Options">
+            <button type="button" class="subtab-btn active" id="subtab-sec-active" onclick="switchSubTab('sec', 'active')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span>Active Secrets</span>
+              <span class="subtab-badge" id="subcount-sec-active">0</span>
+            </button>
+            <button type="button" class="subtab-btn danger-pill" id="subtab-sec-deleted" onclick="switchSubTab('sec', 'deleted')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Deleted Secrets</span>
+              <span class="subtab-badge" id="subcount-sec-deleted">0</span>
+            </button>
+          </div>
         </div>
-        <button class="export-btn" onclick="exportVaultSecretsJson()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Dump JSON
-        </button>
+
+        <div class="toolbar-right" style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="table-search">
+            <input type="text" id="secret-search-input" placeholder="Search secrets...">
+          </div>
+          <button class="export-btn" id="btn-export-secrets" onclick="exportVaultSecretsJson()" title="Dump active secrets to JSON">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Dump JSON
+          </button>
+        </div>
       </div>
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Secret Identifier</th>
-            <th>Secret Value (Click eye to reveal)</th>
-            <th>Content Type</th>
-            <th>Last Updated</th>
-          </tr>
-        </thead>
-        <tbody id="secrets-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
+      <!-- Subpane 1: Active Secrets -->
+      <div class="subpane active" id="subpane-sec-active" style="display: block;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Secret Identifier</th>
+              <th style="width: 44%;">Secret Value (Click eye to reveal)</th>
+              <th style="width: 14%;">Content Type</th>
+              <th style="width: 14%;">Last Updated</th>
+            </tr>
+          </thead>
+          <tbody id="secrets-tbody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subpane 2: Deleted Secrets -->
+      <div class="subpane" id="subpane-sec-deleted" style="display: none;">
+        <div class="table-notice-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          Soft-deleted secrets retain history and can be recovered to inspect their plaintext values.
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 26%;">Deleted Secret Name</th>
+              <th style="width: 18%;">Deleted Date</th>
+              <th style="width: 18%;">Scheduled Purge Date</th>
+              <th style="width: 22%;">Recovery ID</th>
+              <th style="width: 16%;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="del-secrets-tbody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Tab 2: Keys -->
+  <!-- Tab 2: Keys (Active & Deleted merged with sub-tab switch) -->
   <div class="tab-pane" id="tab-keys">
     <div class="data-table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Key Name</th>
-            <th>Key Type</th>
-            <th>Permitted Operations</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="keys-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
+      <div class="table-toolbar">
+        <div class="toolbar-left" style="display: flex; align-items: center; gap: 0.85rem;">
+          <div class="subtab-switcher" role="tablist" aria-label="Keys View Options">
+            <button type="button" class="subtab-btn active" id="subtab-keys-active" onclick="switchSubTab('keys', 'active')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="7.5" cy="15.5" r="5.5"></circle>
+                <path d="m21 2-9.6 9.6"></path>
+                <path d="m15.5 7.5 3 3"></path>
+              </svg>
+              <span>Active Keys</span>
+              <span class="subtab-badge" id="subcount-keys-active">0</span>
+            </button>
+            <button type="button" class="subtab-btn danger-pill" id="subtab-keys-deleted" onclick="switchSubTab('keys', 'deleted')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Deleted Keys</span>
+              <span class="subtab-badge" id="subcount-keys-deleted">0</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <div class="table-search">
+            <input type="text" id="del-key-search-input" placeholder="Search cryptographic keys...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Subpane 1: Active Keys -->
+      <div class="subpane active" id="subpane-keys-active" style="display: block;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Key Name</th>
+              <th>Key Type</th>
+              <th>Permitted Operations</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="keys-tbody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subpane 2: Deleted Keys -->
+      <div class="subpane" id="subpane-keys-deleted" style="display: none;">
+        <div class="table-notice-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          Soft-deleted cryptographic keys can be restored back into the active key vault inventory.
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Deleted Key Name</th>
+              <th>Key Type</th>
+              <th>Deleted Date</th>
+              <th>Scheduled Purge Date</th>
+              <th>Recovery ID</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="del-keys-tbody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- Tab 3: Certificates -->
   <div class="tab-pane" id="tab-certs">
     <div class="data-table-container">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <input type="text" id="cert-search-input" placeholder="Search certificates...">
+        </div>
+      </div>
       <table class="data-table">
         <thead>
           <tr>
@@ -247,72 +507,86 @@
     </div>
   </div>
 
-  <!-- Tab 4: Deleted Secrets -->
-  <div class="tab-pane" id="tab-del-secrets">
+  <!-- Tab 4: Key Vaults (Active & Deleted merged with sub-tab switch) -->
+  <div class="tab-pane" id="tab-vaults">
     <div class="data-table-container">
       <div class="table-toolbar">
-        <div class="table-search">
-          <input type="text" id="del-secret-search-input" placeholder="Search deleted secret name or recovery ID...">
+        <div class="toolbar-left" style="display: flex; align-items: center; gap: 0.85rem;">
+          <div class="subtab-switcher" role="tablist" aria-label="Key Vaults View Options">
+            <button type="button" class="subtab-btn active" id="subtab-vaults-active" onclick="switchSubTab('vaults', 'active')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Active Vaults</span>
+              <span class="subtab-badge" id="subcount-vaults-active">0</span>
+            </button>
+            <button type="button" class="subtab-btn danger-pill" id="subtab-vaults-deleted" onclick="switchSubTab('vaults', 'deleted')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Deleted Vaults</span>
+              <span class="subtab-badge" id="subcount-vaults-deleted">0</span>
+            </button>
+          </div>
         </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-amber);">
+
+        <div class="toolbar-right">
+          <div class="table-search">
+            <input type="text" id="del-vault-search-input" placeholder="Search key vaults...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Subpane 1: Active Key Vaults -->
+      <div class="subpane active" id="subpane-vaults-active" style="display: block;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Vault Name</th>
+              <th>Resource Group</th>
+              <th>Region</th>
+              <th>Auth Model</th>
+              <th>Soft Delete</th>
+              <th>Purge Protection</th>
+              <th>Network</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="active-vaults-tbody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subpane 2: Deleted Key Vaults -->
+      <div class="subpane" id="subpane-vaults-deleted" style="display: none;">
+        <div class="table-notice-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
-          Soft-deleted secrets retain history and can be recovered to inspect their plaintext values.
+          Soft-deleted key vaults can be restored back into the active subscription before their scheduled purge date.
         </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Deleted Vault Name</th>
+              <th>Original Resource Group</th>
+              <th>Region</th>
+              <th>Deleted Date</th>
+              <th>Scheduled Purge Date</th>
+              <th>Purge Protection</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="del-vaults-tbody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
       </div>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Deleted Secret Name</th>
-            <th>Deleted Date</th>
-            <th>Scheduled Purge Date</th>
-            <th>Recovery ID</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="del-secrets-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Tab 5: Deleted Keys -->
-  <div class="tab-pane" id="tab-del-keys">
-    <div class="data-table-container">
-      <div class="table-toolbar">
-        <div class="table-search">
-          <input type="text" id="del-key-search-input" placeholder="Search deleted key name or recovery ID...">
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-amber);">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          Soft-deleted cryptographic keys can be restored back into the active key vault inventory.
-        </div>
-      </div>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Deleted Key Name</th>
-            <th>Key Type</th>
-            <th>Deleted Date</th>
-            <th>Scheduled Purge Date</th>
-            <th>Recovery ID</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="del-keys-tbody">
-          <!-- Rendered by app.js -->
-        </tbody>
-      </table>
     </div>
   </div>
 
@@ -385,7 +659,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/keyvault.js?v=6.0"></script>
+<script src="/static/js/keyvault.js?v=8.0"></script>
 <script>
   {% if vaults_data is defined and vaults_data and vaults_data|length > 0 %}
   try {
@@ -395,6 +669,17 @@
     }
   } catch (err) {
     console.warn("Could not sync live key vault data:", err);
+  }
+  {% endif %}
+
+  {% if deleted_vaults is defined and deleted_vaults %}
+  try {
+    const backendDelVaults = {{ deleted_vaults | tojson }};
+    if (backendDelVaults && typeof window.syncDeletedVaults === 'function') {
+      window.syncDeletedVaults(backendDelVaults);
+    }
+  } catch (err) {
+    console.warn("Could not sync deleted key vaults:", err);
   }
   {% endif %}
 </script>

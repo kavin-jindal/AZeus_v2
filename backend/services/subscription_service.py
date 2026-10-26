@@ -33,17 +33,19 @@ class SubscriptionService:
         """Returns signed in account user identity."""
         return self.info_provider.user_info()
 
-    def compute_metrics(self, vaults_data, groups, resources):
+    def compute_metrics(self, vaults_data, groups, resources, deleted_vaults=None):
         """Computes summary metrics across discovered Azure assets."""
         total_secrets = sum(len(v.get("secrets", [])) for v in vaults_data)
         total_del_secrets = sum(len(v.get("deleted_secrets", [])) for v in vaults_data)
         total_keys = sum(len(v.get("keys", [])) for v in vaults_data)
         total_del_keys = sum(len(v.get("deleted_keys", [])) for v in vaults_data)
         total_certs = sum(len(v.get("certificates", [])) for v in vaults_data)
+        total_del_vaults = len(deleted_vaults or [])
         primary_location = vaults_data[0]["location"] if vaults_data else (groups[0]["location"] if groups else "Global")
 
         return {
             "vaults_count": len(vaults_data),
+            "del_vaults_count": total_del_vaults,
             "secrets_count": total_secrets,
             "del_secrets_count": total_del_secrets,
             "keys_count": total_keys,

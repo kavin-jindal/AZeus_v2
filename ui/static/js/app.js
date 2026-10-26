@@ -23,13 +23,15 @@ const ENUMERATION_DATA = {
   },
   resourceGroups: [],
   reconTimeline: [],
-  vaults: []
+  vaults: [],
+  deletedVaults: []
 };
 
 let currentVaultId = null;
 let currentRgName = null;
 let activeRgCategoryFilter = "all";
 let currentView = "dashboard";
+let currentSubTabs = { sec: 'active', keys: 'active', vaults: 'active' };
 
 function getDashboardUrl() {
   if (window.location.pathname.endsWith(".html")) return "index.html";
@@ -116,6 +118,22 @@ function initApp() {
 
     renderActiveVault();
     renderVaultSwitcher();
+    switchSubTab('sec', 'active');
+    switchSubTab('keys', 'active');
+    switchSubTab('vaults', 'active');
+
+    if (!ENUMERATION_DATA.deletedVaults || ENUMERATION_DATA.deletedVaults.length === 0) {
+      fetch("/api/keyvault/deleted-vaults")
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.success && Array.isArray(data.deleted_vaults)) {
+            syncDeletedVaults(data.deleted_vaults);
+          }
+        })
+        .catch(err => console.warn("Could not fetch deleted vaults:", err));
+    } else {
+      renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults);
+    }
   } else if (hasDashboardView && !hasVaultsView && !hasRgView) {
     currentView = "dashboard";
     const navDashBtn = document.getElementById("nav-btn-dashboard");
@@ -354,6 +372,36 @@ function syncBackendVaults(liveVaults) {
   }
 }
 window.syncBackendVaults = syncBackendVaults;
+
+// Sync Deleted Key Vaults Data from Backend
+function syncDeletedVaults(delVaults) {
+  if (!Array.isArray(delVaults)) return;
+
+  ENUMERATION_DATA.deletedVaults = delVaults.map(dv => {
+    return {
+      name: dv.name,
+      id: dv.id || dv.vault_id || dv.name,
+      vault_id: dv.vault_id || dv.id || "",
+      resourceGroup: dv.resourceGroup || dv.resource_group || "",
+      location: dv.location || "eastus",
+      deletion_date: dv.deletion_date || "",
+      scheduled_purge_date: dv.scheduled_purge_date || "",
+      purgeProtection: dv.purgeProtection || dv.purge_protection || "Disabled",
+      tags: dv.tags || {}
+    };
+  });
+
+  const countVaults = document.getElementById("count-vaults");
+  if (countVaults) countVaults.textContent = ENUMERATION_DATA.vaults.length + ENUMERATION_DATA.deletedVaults.length;
+
+  const subcountDelVaults = document.getElementById("subcount-vaults-deleted");
+  if (subcountDelVaults) subcountDelVaults.textContent = ENUMERATION_DATA.deletedVaults.length;
+
+  if (Boolean(document.getElementById("view-vaults"))) {
+    renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults);
+  }
+}
+window.syncDeletedVaults = syncDeletedVaults;
 
 // Dropdown UI state controls
 function openVaultDropdown() {
@@ -1317,23 +1365,37 @@ function renderActiveVault() {
     const countSecrets = document.getElementById("count-secrets");
     if (countSecrets) countSecrets.textContent = "0";
 
-    const countDelSecrets = document.getElementById("count-del-secrets");
-    if (countDelSecrets) countDelSecrets.textContent = "0";
-
     const countKeys = document.getElementById("count-keys");
     if (countKeys) countKeys.textContent = "0";
 
-    const countDelKeys = document.getElementById("count-del-keys");
-    if (countDelKeys) countDelKeys.textContent = "0";
-
     const countCerts = document.getElementById("count-certs");
     if (countCerts) countCerts.textContent = "0";
+
+    const countVaults = document.getElementById("count-vaults");
+    if (countVaults) countVaults.textContent = String(ENUMERATION_DATA.vaults.length + (ENUMERATION_DATA.deletedVaults || []).length);
+
+    const subSecAct = document.getElementById("subcount-sec-active");
+    if (subSecAct) subSecAct.textContent = "0";
+    const subSecDel = document.getElementById("subcount-sec-deleted");
+    if (subSecDel) subSecDel.textContent = "0";
+
+    const subKeyAct = document.getElementById("subcount-keys-active");
+    if (subKeyAct) subKeyAct.textContent = "0";
+    const subKeyDel = document.getElementById("subcount-keys-deleted");
+    if (subKeyDel) subKeyDel.textContent = "0";
+
+    const subVaultAct = document.getElementById("subcount-vaults-active");
+    if (subVaultAct) subVaultAct.textContent = String(ENUMERATION_DATA.vaults.length);
+    const subVaultDel = document.getElementById("subcount-vaults-deleted");
+    if (subVaultDel) subVaultDel.textContent = String((ENUMERATION_DATA.deletedVaults || []).length);
 
     renderSecretsTable([]);
     renderDeletedSecretsTable([]);
     renderKeysTable([]);
     renderDeletedKeysTable([]);
     renderCertsTable([]);
+    renderActiveVaultsTable(ENUMERATION_DATA.vaults);
+    renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults || []);
     return;
   }
 
@@ -1369,27 +1431,53 @@ function renderActiveVault() {
     `;
   }
 
-  // Tab Counts
-  const countSecrets = document.getElementById("count-secrets");
-  if (countSecrets) countSecrets.textContent = vault.secrets.length;
+  // Merged Tab Counts
+  const activeSecCount = vault.secrets.length;
+  const delSecCount = (vault.deleted_secrets || []).length;
+  const activeKeyCount = vault.keys.length;
+  const delKeyCount = (vault.deleted_keys || []).length;
+  const certsCount = vault.certificates.length;
+  const activeVaultCount = ENUMERATION_DATA.vaults.length;
+  const delVaultCount = (ENUMERATION_DATA.deletedVaults || []).length;
 
-  const countDelSecrets = document.getElementById("count-del-secrets");
-  if (countDelSecrets) countDelSecrets.textContent = (vault.deleted_secrets || []).length;
+  const countSecrets = document.getElementById("count-secrets");
+  if (countSecrets) countSecrets.textContent = activeSecCount + delSecCount;
 
   const countKeys = document.getElementById("count-keys");
-  if (countKeys) countKeys.textContent = vault.keys.length;
-
-  const countDelKeys = document.getElementById("count-del-keys");
-  if (countDelKeys) countDelKeys.textContent = (vault.deleted_keys || []).length;
+  if (countKeys) countKeys.textContent = activeKeyCount + delKeyCount;
 
   const countCerts = document.getElementById("count-certs");
-  if (countCerts) countCerts.textContent = vault.certificates.length;
+  if (countCerts) countCerts.textContent = certsCount;
+
+  const countVaults = document.getElementById("count-vaults");
+  if (countVaults) countVaults.textContent = activeVaultCount + delVaultCount;
+
+  // Subcount Badges
+  const subSecAct = document.getElementById("subcount-sec-active");
+  if (subSecAct) subSecAct.textContent = activeSecCount;
+
+  const subSecDel = document.getElementById("subcount-sec-deleted");
+  if (subSecDel) subSecDel.textContent = delSecCount;
+
+  const subKeyAct = document.getElementById("subcount-keys-active");
+  if (subKeyAct) subKeyAct.textContent = activeKeyCount;
+
+  const subKeyDel = document.getElementById("subcount-keys-deleted");
+  if (subKeyDel) subKeyDel.textContent = delKeyCount;
+
+  const subVaultAct = document.getElementById("subcount-vaults-active");
+  if (subVaultAct) subVaultAct.textContent = activeVaultCount;
+
+  const subVaultDel = document.getElementById("subcount-vaults-deleted");
+  if (subVaultDel) subVaultDel.textContent = delVaultCount;
 
   renderSecretsTable(vault.secrets);
   renderDeletedSecretsTable(vault.deleted_secrets || [], vault.uri);
   renderKeysTable(vault.keys);
   renderDeletedKeysTable(vault.deleted_keys || [], vault.uri);
   renderCertsTable(vault.certificates);
+  renderActiveVaultsTable(ENUMERATION_DATA.vaults);
+  renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults || []);
 }
 
 function renderSecretsTable(secrets, searchFilter = "") {
@@ -1399,7 +1487,8 @@ function renderSecretsTable(secrets, searchFilter = "") {
 
   const filtered = secrets.filter(s => 
     s.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    s.contentType.toLowerCase().includes(searchFilter.toLowerCase())
+    (s.contentType && s.contentType.toLowerCase().includes(searchFilter.toLowerCase())) ||
+    (s.content_type && s.content_type.toLowerCase().includes(searchFilter.toLowerCase()))
   );
 
   if (filtered.length === 0) {
@@ -1408,49 +1497,61 @@ function renderSecretsTable(secrets, searchFilter = "") {
   }
 
   filtered.forEach((secret, index) => {
-    const isError = secret.value.startsWith("[403");
+    const valStr = String(secret.value !== undefined && secret.value !== null ? secret.value : "");
+    const isError = valStr.startsWith("[403") || valStr.startsWith("[Error");
     const tr = document.createElement("tr");
     
     tr.innerHTML = `
       <td>
-        <span class="secret-name">
+        <span class="secret-name" title="${escapeHtml(secret.name)}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          ${secret.name}
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(secret.name)}</span>
         </span>
       </td>
       <td>
         <div class="secret-value-box">
-          <span class="secret-mask" id="mask-${index}" data-val="${escapeHtml(secret.value)}">
-            ${isError ? escapeHtml(secret.value) : '••••••••••••••••'}
+          <span class="secret-mask" id="mask-${index}" data-val="${escapeHtml(valStr)}" data-name="${escapeHtml(secret.name)}" data-type="${escapeHtml(secret.contentType || secret.content_type || 'secret')}" data-updated="${escapeHtml(secret.updated || 'N/A')}" title="${isError ? escapeHtml(valStr) : 'Click eye to preview, or expand icon to view full value'}">
+            ${isError ? escapeHtml(valStr) : '••••••••••••••••'}
           </span>
           ${!isError ? `
-            <button class="action-icon-btn" onclick="toggleReveal(${index})" title="Reveal/Hide Value">
+            <button class="action-icon-btn" onclick="toggleReveal(${index})" title="Reveal / Hide Value Inline">
               <svg id="eye-icon-${index}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </button>
-            <button class="action-icon-btn" onclick="copySecret('${escapeHtml(secret.value)}')" title="Copy Value">
+            <button class="action-icon-btn" onclick="inspectSecretByIndex(${index})" title="Expand / View Full Value in Modal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+            </button>
+            <button class="action-icon-btn" onclick="copySecretByIndex(${index})" title="Copy Value to Clipboard">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           ` : ''}
         </div>
       </td>
-      <td><span class="badge-tag">${escapeHtml(secret.contentType || secret.content_type || "secret")}</span></td>
+      <td><span class="badge-tag" title="${escapeHtml(secret.contentType || secret.content_type || 'secret')}">${escapeHtml(secret.contentType || secret.content_type || "secret")}</span></td>
       <td style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem;">${escapeHtml(secret.updated || "N/A")}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-function renderKeysTable(keys) {
+function renderKeysTable(keys, searchFilter = "") {
   const tbody = document.getElementById("keys-tbody");
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  if (!keys || keys.length === 0) {
+  const filterLower = (searchFilter || "").trim().toLowerCase();
+  const filtered = (keys || []).filter(k =>
+    !filterLower ||
+    (k.name && k.name.toLowerCase().includes(filterLower)) ||
+    (k.type && k.type.toLowerCase().includes(filterLower)) ||
+    (k.key_type && k.key_type.toLowerCase().includes(filterLower))
+  );
+
+  if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No cryptographic keys discovered</td></tr>`;
     return;
   }
 
-  keys.forEach(k => {
+  filtered.forEach(k => {
     const tr = document.createElement("tr");
     const opsArr = k.ops || ["encrypt", "decrypt", "wrapKey", "unwrapKey"];
     const statusVal = k.status || (k.enabled_state !== false ? "Enabled" : "Disabled");
@@ -1475,12 +1576,19 @@ function renderKeysTable(keys) {
   });
 }
 
-function renderCertsTable(certs) {
+function renderCertsTable(certs, searchFilter = "") {
   const tbody = document.getElementById("certs-tbody");
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  if (!certs || certs.length === 0) {
+  const filterLower = (searchFilter || "").trim().toLowerCase();
+  const filtered = (certs || []).filter(c =>
+    !filterLower ||
+    (c.name && c.name.toLowerCase().includes(filterLower)) ||
+    (c.thumbprint && c.thumbprint.toLowerCase().includes(filterLower))
+  );
+
+  if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No SSL/TLS certificates discovered</td></tr>`;
     return;
   }
@@ -1755,6 +1863,313 @@ async function recoverKey(vaultUri, keyName, btnEl) {
 }
 window.recoverKey = recoverKey;
 
+function renderDeletedVaultsTable(delVaults, searchFilter = "") {
+  const tbody = document.getElementById("del-vaults-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const filterLower = (searchFilter || "").trim().toLowerCase();
+  const list = delVaults || ENUMERATION_DATA.deletedVaults || [];
+  const filtered = list.filter(v =>
+    !filterLower ||
+    (v.name && v.name.toLowerCase().includes(filterLower)) ||
+    (v.resourceGroup && v.resourceGroup.toLowerCase().includes(filterLower)) ||
+    (v.location && v.location.toLowerCase().includes(filterLower)) ||
+    (v.id && v.id.toLowerCase().includes(filterLower))
+  );
+
+  const countDelVaults = document.getElementById("count-del-vaults");
+  if (countDelVaults) countDelVaults.textContent = list.length;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No deleted key vaults found</td></tr>`;
+    return;
+  }
+
+  filtered.forEach((vault, index) => {
+    const tr = document.createElement("tr");
+    const rgDisplay = vault.resourceGroup || "N/A";
+    const purgeProtStr = vault.purgeProtection || "Disabled";
+
+    tr.innerHTML = `
+      <td>
+        <span class="vault-name font-mono" style="color: #f87171; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          ${escapeHtml(vault.name)}
+        </span>
+      </td>
+      <td>
+        <span class="tag tag-neutral font-mono" style="font-size: 0.775rem;">
+          ${escapeHtml(rgDisplay)}
+        </span>
+      </td>
+      <td>
+        <span style="color: var(--text-secondary); font-size: 0.8rem;">
+          ${escapeHtml(vault.location)}
+        </span>
+      </td>
+      <td style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem;">
+        ${escapeHtml(vault.deletion_date || "N/A")}
+      </td>
+      <td>
+        <span class="tag tag-warning font-mono" style="font-size: 0.75rem;">
+          ${escapeHtml(vault.scheduled_purge_date || "N/A")}
+        </span>
+      </td>
+      <td>
+        <span class="tag ${purgeProtStr === 'Enabled' ? 'tag-cyan' : 'tag-neutral'}">
+          ${escapeHtml(purgeProtStr)}
+        </span>
+      </td>
+      <td>
+        <button class="action-btn-sm action-btn-recover" id="btn-recover-vault-${index}" onclick="restoreKeyVault('${escapeHtml(vault.name)}', '${escapeHtml(vault.resourceGroup || '')}', '${escapeHtml(vault.location || '')}', this)" title="Restore this Key Vault back into active inventory">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>Restore Vault</span>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+window.renderDeletedVaultsTable = renderDeletedVaultsTable;
+
+async function restoreKeyVault(vaultName, resourceGroup, location, btnEl) {
+  if (!vaultName) {
+    showToast("Invalid key vault name");
+    return;
+  }
+
+  const confirmed = confirm(`Are you sure you want to restore Key Vault "${vaultName}"?`);
+  if (!confirmed) return;
+
+  const origHtml = btnEl ? btnEl.innerHTML : "";
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg>
+      <span>Restoring...</span>
+    `;
+  }
+
+  showToast(`Initiating restore operation for "${vaultName}"...`);
+
+  try {
+    const res = await fetch("/api/keyvault/recover-vault", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        vault_name: vaultName,
+        resource_group: resourceGroup,
+        location: location
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Failed to restore key vault");
+    }
+
+    showToast(`Key Vault "${vaultName}" restored successfully!`);
+
+    // Remove from deletedVaults list
+    ENUMERATION_DATA.deletedVaults = (ENUMERATION_DATA.deletedVaults || []).filter(v => v.name !== vaultName);
+    renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults);
+
+    const countVaults = document.getElementById("count-vaults");
+    if (countVaults) countVaults.textContent = ENUMERATION_DATA.vaults.length + ENUMERATION_DATA.deletedVaults.length;
+
+    const subcountDelVaults = document.getElementById("subcount-vaults-deleted");
+    if (subcountDelVaults) subcountDelVaults.textContent = ENUMERATION_DATA.deletedVaults.length;
+
+    // Refresh dynamic data after brief timeout to show restored vault in inventory
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+
+  } catch (err) {
+    console.error("Key vault restore error:", err);
+    showToast(`Error: ${err.message}`);
+    alert(`Could not restore key vault "${vaultName}":\n\n${err.message}`);
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = origHtml;
+    }
+  }
+}
+window.restoreKeyVault = restoreKeyVault;
+
+function switchSubTab(group, target) {
+  currentSubTabs[group] = target;
+
+  const activeBtn = document.getElementById(`subtab-${group}-active`);
+  const delBtn = document.getElementById(`subtab-${group}-deleted`);
+  const activePane = document.getElementById(`subpane-${group}-active`);
+  const delPane = document.getElementById(`subpane-${group}-deleted`);
+
+  if (target === 'active') {
+    if (activeBtn) activeBtn.classList.add('active');
+    if (delBtn) delBtn.classList.remove('active');
+    if (activePane) {
+      activePane.classList.add('active');
+      activePane.style.setProperty('display', 'block', 'important');
+    }
+    if (delPane) {
+      delPane.classList.remove('active');
+      delPane.style.setProperty('display', 'none', 'important');
+    }
+  } else {
+    if (activeBtn) activeBtn.classList.remove('active');
+    if (delBtn) delBtn.classList.add('active');
+    if (activePane) {
+      activePane.classList.remove('active');
+      activePane.style.setProperty('display', 'none', 'important');
+    }
+    if (delPane) {
+      delPane.classList.add('active');
+      delPane.style.setProperty('display', 'block', 'important');
+    }
+  }
+
+  // Trigger re-filtering for currently typed query
+  const vault = getActiveVault();
+  if (group === 'sec') {
+    const sInput = document.getElementById("secret-search-input");
+    if (sInput) sInput.placeholder = target === 'active' ? "Search secrets..." : "Search deleted secrets...";
+    const q = sInput ? sInput.value : "";
+    if (vault) {
+      if (target === 'active') renderSecretsTable(vault.secrets, q);
+      else renderDeletedSecretsTable(vault.deleted_secrets || [], vault.uri, q);
+    }
+  } else if (group === 'keys') {
+    const kInput = document.getElementById("del-key-search-input");
+    if (kInput) kInput.placeholder = target === 'active' ? "Search cryptographic keys..." : "Search deleted keys...";
+    const q = kInput ? kInput.value : "";
+    if (vault) {
+      if (target === 'active') renderKeysTable(vault.keys, q);
+      else renderDeletedKeysTable(vault.deleted_keys || [], vault.uri, q);
+    }
+  } else if (group === 'vaults') {
+    const vInput = document.getElementById("del-vault-search-input");
+    if (vInput) vInput.placeholder = target === 'active' ? "Search active key vaults..." : "Search deleted key vaults...";
+    const q = vInput ? vInput.value : "";
+    if (target === 'active') renderActiveVaultsTable(ENUMERATION_DATA.vaults, q);
+    else renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults || [], q);
+  }
+}
+window.switchSubTab = switchSubTab;
+
+function renderActiveVaultsTable(vaults, searchFilter = "") {
+  const tbody = document.getElementById("active-vaults-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const filterLower = (searchFilter || "").trim().toLowerCase();
+  const list = vaults || ENUMERATION_DATA.vaults || [];
+  const filtered = list.filter(v =>
+    !filterLower ||
+    (v.name && v.name.toLowerCase().includes(filterLower)) ||
+    (v.resourceGroup && v.resourceGroup.toLowerCase().includes(filterLower)) ||
+    (v.location && v.location.toLowerCase().includes(filterLower))
+  );
+
+  const subcountActiveVaults = document.getElementById("subcount-vaults-active");
+  if (subcountActiveVaults) subcountActiveVaults.textContent = list.length;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No active key vaults match search filter</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(v => {
+    const isCurrent = v.id === currentVaultId;
+    const tr = document.createElement("tr");
+    if (isCurrent) {
+      tr.style.background = "rgba(56, 189, 248, 0.05)";
+    }
+
+    const softDelStr = v.softDelete || "Disabled";
+    const purgeProtStr = v.purgeProtection || "Disabled";
+
+    tr.innerHTML = `
+      <td>
+        <span class="vault-name font-mono" style="font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          ${escapeHtml(v.name)}
+        </span>
+      </td>
+      <td>
+        <span class="tag tag-neutral font-mono" style="font-size: 0.775rem;">
+          ${escapeHtml(v.resourceGroup || "N/A")}
+        </span>
+      </td>
+      <td>
+        <span style="color: var(--text-secondary); font-size: 0.8rem;">
+          ${escapeHtml(v.location)}
+        </span>
+      </td>
+      <td>
+        <span class="tag tag-neutral" style="font-size: 0.75rem;">
+          ${v.rbacAuth ? 'Azure RBAC' : 'Access Policies'}
+        </span>
+      </td>
+      <td>
+        <span class="tag ${softDelStr.includes('Disabled') ? 'tag-warning' : 'tag-cyan'}">
+          ${escapeHtml(softDelStr)}
+        </span>
+      </td>
+      <td>
+        <span class="tag ${purgeProtStr === 'Enabled' ? 'tag-cyan' : 'tag-neutral'}">
+          ${escapeHtml(purgeProtStr)}
+        </span>
+      </td>
+      <td>
+        <span class="tag tag-neutral">
+          ${escapeHtml(v.publicNetwork || 'Enabled')}
+        </span>
+      </td>
+      <td>
+        ${isCurrent ? `
+          <span class="tag tag-cyan font-mono" style="font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <span class="status-dot accessible" style="width: 6px; height: 6px;"></span>
+            Current Active
+          </span>
+        ` : `
+          <button class="action-btn-sm" onclick="selectVaultAndFocus('${escapeHtml(v.id)}')" title="Switch to this Key Vault">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+            <span>Select Vault</span>
+          </button>
+        `}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+window.renderActiveVaultsTable = renderActiveVaultsTable;
+
+function selectVaultAndFocus(vaultId) {
+  selectVault(vaultId);
+  const secTabBtn = document.querySelector('.tab-btn[data-tab="secrets"]');
+  if (secTabBtn) secTabBtn.click();
+  showToast(`Switched active vault to "${vaultId}"`);
+}
+window.selectVaultAndFocus = selectVaultAndFocus;
+
 function openSecretModal(data) {
   const backdrop = document.getElementById("secret-modal-backdrop");
   if (!backdrop) return;
@@ -1768,13 +2183,13 @@ function openSecretModal(data) {
   const lengthEl = document.getElementById("modal-value-length");
 
   const name = data.name || "Secret";
-  const val = data.value !== undefined ? data.value : "";
-  const contentType = data.content_type || "secret";
+  const val = data.value !== undefined ? String(data.value) : "";
+  const contentType = data.content_type || data.contentType || "secret";
   const updated = data.updated || "Just now";
 
-  if (titleEl) titleEl.textContent = `Secret Recovered: ${name}`;
-  if (subtitleEl) subtitleEl.textContent = `Retrieved from Azure Key Vault`;
-  if (statusEl) statusEl.textContent = "Active / Restored";
+  if (titleEl) titleEl.textContent = data.isRecovered ? `Secret Recovered: ${name}` : `Secret Value: ${name}`;
+  if (subtitleEl) subtitleEl.textContent = data.subtitle || (data.isRecovered ? `Retrieved from Azure Key Vault soft-delete` : `Active Azure Key Vault Secret`);
+  if (statusEl) statusEl.textContent = data.status || (data.isRecovered ? "Recovered & Active" : "Active");
   if (typeEl) typeEl.textContent = contentType;
   if (updatedEl) updatedEl.textContent = updated;
   if (valueEl) valueEl.value = val;
@@ -1806,17 +2221,57 @@ function copyRecoveredSecretValue() {
 }
 window.copyRecoveredSecretValue = copyRecoveredSecretValue;
 
+function inspectSecretByIndex(index) {
+  const mask = document.getElementById(`mask-${index}`);
+  const val = mask ? (mask.getAttribute("data-val") || "") : "";
+  const name = mask ? (mask.getAttribute("data-name") || "Secret") : "Secret";
+  const type = mask ? (mask.getAttribute("data-type") || "secret") : "secret";
+  const updated = mask ? (mask.getAttribute("data-updated") || "N/A") : "N/A";
+  
+  openSecretModal({
+    name: name,
+    value: val,
+    content_type: type,
+    updated: updated,
+    isRecovered: false
+  });
+}
+window.inspectSecretByIndex = inspectSecretByIndex;
+
+function copySecretByIndex(index) {
+  const mask = document.getElementById(`mask-${index}`);
+  if (mask && mask.hasAttribute("data-val")) {
+    copySecret(mask.getAttribute("data-val") || "");
+    return;
+  }
+  const vault = getActiveVault();
+  if (vault && vault.secrets && vault.secrets[index]) {
+    copySecret(vault.secrets[index].value || "");
+  }
+}
+window.copySecretByIndex = copySecretByIndex;
+
 function toggleReveal(index) {
   const el = document.getElementById(`mask-${index}`);
+  const eyeIcon = document.getElementById(`eye-icon-${index}`);
   if (!el) return;
   const isRevealed = el.classList.contains("secret-revealed");
   
   if (isRevealed) {
     el.textContent = "••••••••••••••••";
     el.classList.remove("secret-revealed");
+    if (eyeIcon) {
+      eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+    }
   } else {
-    el.textContent = el.getAttribute("data-val");
+    const fullVal = el.getAttribute("data-val") || "";
+    // Clean up carriage returns/newlines for inline preview so it doesn't break single-line row height
+    const cleanPreview = fullVal.replace(/[\r\n]+/g, " ");
+    el.textContent = cleanPreview;
     el.classList.add("secret-revealed");
+    if (eyeIcon) {
+      eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    }
   }
 }
 
@@ -2082,35 +2537,55 @@ function setupEventListeners() {
     }
   }
 
-  // Table Search
+  // Secrets Search (Active or Deleted based on current subtab)
   const secretSearchInput = document.getElementById("secret-search-input");
   if (secretSearchInput) {
     secretSearchInput.addEventListener("input", (e) => {
       const vault = getActiveVault();
       if (vault) {
-        renderSecretsTable(vault.secrets, e.target.value);
+        if (currentSubTabs.sec === 'active') {
+          renderSecretsTable(vault.secrets, e.target.value);
+        } else {
+          renderDeletedSecretsTable(vault.deleted_secrets || [], vault.uri, e.target.value);
+        }
       }
     });
   }
 
-  // Deleted Secrets Search
-  const delSecretSearchInput = document.getElementById("del-secret-search-input");
-  if (delSecretSearchInput) {
-    delSecretSearchInput.addEventListener("input", (e) => {
-      const vault = getActiveVault();
-      if (vault) {
-        renderDeletedSecretsTable(vault.deleted_secrets || [], vault.uri, e.target.value);
-      }
-    });
-  }
-
-  // Deleted Keys Search
+  // Keys Search (Active or Deleted based on current subtab)
   const delKeySearchInput = document.getElementById("del-key-search-input");
   if (delKeySearchInput) {
     delKeySearchInput.addEventListener("input", (e) => {
       const vault = getActiveVault();
       if (vault) {
-        renderDeletedKeysTable(vault.deleted_keys || [], vault.uri, e.target.value);
+        if (currentSubTabs.keys === 'active') {
+          renderKeysTable(vault.keys, e.target.value);
+        } else {
+          renderDeletedKeysTable(vault.deleted_keys || [], vault.uri, e.target.value);
+        }
+      }
+    });
+  }
+
+  // Certificates Search
+  const certSearchInput = document.getElementById("cert-search-input");
+  if (certSearchInput) {
+    certSearchInput.addEventListener("input", (e) => {
+      const vault = getActiveVault();
+      if (vault) {
+        renderCertsTable(vault.certificates, e.target.value);
+      }
+    });
+  }
+
+  // Key Vaults Search (Active or Deleted based on current subtab)
+  const delVaultSearchInput = document.getElementById("del-vault-search-input");
+  if (delVaultSearchInput) {
+    delVaultSearchInput.addEventListener("input", (e) => {
+      if (currentSubTabs.vaults === 'active') {
+        renderActiveVaultsTable(ENUMERATION_DATA.vaults, e.target.value);
+      } else {
+        renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults || [], e.target.value);
       }
     });
   }

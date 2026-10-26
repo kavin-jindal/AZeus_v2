@@ -1887,6 +1887,100 @@ body {
   display: block;
 }
 
+/* Sub-Tab Pill Switcher */
+.subtab-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+}
+
+.subtab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: var(--transition-smooth);
+}
+
+.subtab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.subtab-btn.active {
+  background: rgba(56, 189, 248, 0.16);
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.35);
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+}
+
+.subtab-btn.danger-pill:hover {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.subtab-btn.danger-pill.active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+}
+
+.subtab-badge {
+  font-size: 0.68rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.subtab-btn.active .subtab-badge {
+  background: rgba(56, 189, 248, 0.3);
+  color: var(--accent-cyan);
+}
+
+.subtab-btn.danger-pill.active .subtab-badge {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.subpane {
+  display: none;
+}
+
+.subpane.active {
+  display: block;
+}
+
+.table-notice-banner {
+  padding: 0.65rem 1.25rem;
+  background: rgba(245, 158, 11, 0.06);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-notice-banner svg {
+  color: var(--accent-amber);
+  flex-shrink: 0;
+}
+
 /* Data Table (Pure Black, Borderless) */
 .data-table-container {
   background: rgba(8, 8, 8, 0.88);
@@ -1948,6 +2042,7 @@ body {
 
 .data-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.85rem;
@@ -1962,6 +2057,9 @@ body {
   font-weight: 600;
   border-bottom: 1px solid var(--border-color);
   background: rgba(14, 14, 14, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-table td {
@@ -1969,6 +2067,9 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .data-table tr:last-child td {
@@ -1986,10 +2087,14 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .secret-name svg, .key-name svg, .cert-name svg {
   color: var(--accent-cyan);
+  flex-shrink: 0;
 }
 
 .secret-value-box {
@@ -1998,6 +2103,9 @@ body {
   gap: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.825rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .secret-mask {
@@ -2006,16 +2114,33 @@ body {
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   letter-spacing: 0.15em;
-  border: none;
-  min-width: 130px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 120px;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   user-select: none;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.4;
+  box-sizing: border-box;
+  transition: var(--transition-smooth);
 }
 
 .secret-revealed {
   background: rgba(56, 189, 248, 0.12);
   color: var(--accent-cyan);
+  border-color: rgba(56, 189, 248, 0.3);
   letter-spacing: normal;
   user-select: all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+  cursor: pointer;
 }
 
 .action-icon-btn {
