@@ -71,6 +71,86 @@ async def api_recover_key():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@keyvault_bp.route("/api/keyvault/secret-versions", methods=["POST"])
+async def api_secret_versions():
+    try:
+        payload = await request.get_json()
+        if not payload:
+            return {"success": False, "error": "No JSON payload provided"}
+        vault_url = payload.get("vault_url")
+        secret_name = payload.get("secret_name")
+        if not vault_url or not secret_name:
+            return {"success": False, "error": "vault_url and secret_name are required"}
+
+        data = get_azure_data()
+        sub_id = data["sub_data"]["sub_id"]
+        cred = get_azure_credential()
+        keyv = KeyVaultService(cred=cred, sub_id=sub_id)
+        versions = keyv.get_secret_versions(vault_url=vault_url, secret_name=secret_name)
+        return {"success": True, "secret_name": secret_name, "versions": versions}
+    except Exception as e:
+        return {"success": False, "error": str(e), "versions": []}
+
+@keyvault_bp.route("/api/keyvault/key-versions", methods=["POST"])
+async def api_key_versions():
+    try:
+        payload = await request.get_json()
+        if not payload:
+            return {"success": False, "error": "No JSON payload provided"}
+        vault_url = payload.get("vault_url")
+        key_name = payload.get("key_name")
+        if not vault_url or not key_name:
+            return {"success": False, "error": "vault_url and key_name are required"}
+
+        data = get_azure_data()
+        sub_id = data["sub_data"]["sub_id"]
+        cred = get_azure_credential()
+        keyv = KeyVaultService(cred=cred, sub_id=sub_id)
+        versions = keyv.get_key_versions(vault_url=vault_url, key_name=key_name)
+        return {"success": True, "key_name": key_name, "versions": versions}
+    except Exception as e:
+        return {"success": False, "error": str(e), "versions": []}
+
+@keyvault_bp.route("/api/keyvault/cert-versions", methods=["POST"])
+async def api_cert_versions():
+    try:
+        payload = await request.get_json()
+        if not payload:
+            return {"success": False, "error": "No JSON payload provided"}
+        vault_url = payload.get("vault_url")
+        cert_name = payload.get("cert_name")
+        if not vault_url or not cert_name:
+            return {"success": False, "error": "vault_url and cert_name are required"}
+
+        data = get_azure_data()
+        sub_id = data["sub_data"]["sub_id"]
+        cred = get_azure_credential()
+        keyv = KeyVaultService(cred=cred, sub_id=sub_id)
+        versions = keyv.get_cert_versions(vault_url=vault_url, cert_name=cert_name)
+        return {"success": True, "cert_name": cert_name, "versions": versions}
+    except Exception as e:
+        return {"success": False, "error": str(e), "versions": []}
+
+@keyvault_bp.route("/api/keyvault/deleted-certs", methods=["GET", "POST"])
+async def api_deleted_certs():
+    try:
+        vault_url = request.args.get("vault_url")
+        if not vault_url and request.method == "POST":
+            payload = await request.get_json()
+            if payload:
+                vault_url = payload.get("vault_url")
+        if not vault_url:
+            return {"success": False, "error": "vault_url parameter required"}
+
+        data = get_azure_data()
+        sub_id = data["sub_data"]["sub_id"]
+        cred = get_azure_credential()
+        keyv = KeyVaultService(cred=cred, sub_id=sub_id)
+        del_certs = keyv.get_deleted_certs(vault_url=vault_url)
+        return {"success": True, "deleted_certs": del_certs}
+    except Exception as e:
+        return {"success": False, "error": str(e), "deleted_certs": []}
+
 @keyvault_bp.route("/api/keyvault/vaults")
 async def api_vaults():
     data = get_azure_data()

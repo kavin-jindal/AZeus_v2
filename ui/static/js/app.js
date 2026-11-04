@@ -31,7 +31,7 @@ let currentVaultId = null;
 let currentRgName = null;
 let activeRgCategoryFilter = "all";
 let currentView = "dashboard";
-let currentSubTabs = { sec: 'active', keys: 'active', vaults: 'active' };
+let currentSubTabs = { sec: 'active', keys: 'active', certs: 'active', vaults: 'active' };
 
 function getDashboardUrl() {
   if (window.location.pathname.endsWith(".html")) return "index.html";
@@ -120,6 +120,7 @@ function initApp() {
     renderVaultSwitcher();
     switchSubTab('sec', 'active');
     switchSubTab('keys', 'active');
+    switchSubTab('certs', 'active');
     switchSubTab('vaults', 'active');
 
     if (!ENUMERATION_DATA.deletedVaults || ENUMERATION_DATA.deletedVaults.length === 0) {
@@ -355,6 +356,14 @@ function syncBackendVaults(liveVaults) {
         thumbprint: c.thumbprint || "",
         expires: c.expires || "Active",
         autoRenew: c.autoRenew || (c.enabled_state !== false ? "Enabled" : "Disabled")
+      })),
+      deleted_certificates: (v.deleted_certificates || []).map(dc => ({
+        name: dc.name,
+        id: dc.id || "",
+        recovery_id: dc.recovery_id || "",
+        thumbprint: dc.thumbprint || "",
+        deleted_date: dc.deleted_date || "",
+        scheduled_purge_date: dc.scheduled_purge_date || ""
       }))
     };
   });
@@ -1384,6 +1393,11 @@ function renderActiveVault() {
     const subKeyDel = document.getElementById("subcount-keys-deleted");
     if (subKeyDel) subKeyDel.textContent = "0";
 
+    const subCertAct = document.getElementById("subcount-certs-active");
+    if (subCertAct) subCertAct.textContent = "0";
+    const subCertDel = document.getElementById("subcount-certs-deleted");
+    if (subCertDel) subCertDel.textContent = "0";
+
     const subVaultAct = document.getElementById("subcount-vaults-active");
     if (subVaultAct) subVaultAct.textContent = String(ENUMERATION_DATA.vaults.length);
     const subVaultDel = document.getElementById("subcount-vaults-deleted");
@@ -1394,6 +1408,7 @@ function renderActiveVault() {
     renderKeysTable([]);
     renderDeletedKeysTable([]);
     renderCertsTable([]);
+    renderDeletedCertsTable([]);
     renderActiveVaultsTable(ENUMERATION_DATA.vaults);
     renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults || []);
     return;
@@ -1436,7 +1451,8 @@ function renderActiveVault() {
   const delSecCount = (vault.deleted_secrets || []).length;
   const activeKeyCount = vault.keys.length;
   const delKeyCount = (vault.deleted_keys || []).length;
-  const certsCount = vault.certificates.length;
+  const activeCertCount = vault.certificates.length;
+  const delCertCount = (vault.deleted_certificates || []).length;
   const activeVaultCount = ENUMERATION_DATA.vaults.length;
   const delVaultCount = (ENUMERATION_DATA.deletedVaults || []).length;
 
@@ -1447,7 +1463,7 @@ function renderActiveVault() {
   if (countKeys) countKeys.textContent = activeKeyCount + delKeyCount;
 
   const countCerts = document.getElementById("count-certs");
-  if (countCerts) countCerts.textContent = certsCount;
+  if (countCerts) countCerts.textContent = activeCertCount + delCertCount;
 
   const countVaults = document.getElementById("count-vaults");
   if (countVaults) countVaults.textContent = activeVaultCount + delVaultCount;
@@ -1465,6 +1481,12 @@ function renderActiveVault() {
   const subKeyDel = document.getElementById("subcount-keys-deleted");
   if (subKeyDel) subKeyDel.textContent = delKeyCount;
 
+  const subCertAct = document.getElementById("subcount-certs-active");
+  if (subCertAct) subCertAct.textContent = activeCertCount;
+
+  const subCertDel = document.getElementById("subcount-certs-deleted");
+  if (subCertDel) subCertDel.textContent = delCertCount;
+
   const subVaultAct = document.getElementById("subcount-vaults-active");
   if (subVaultAct) subVaultAct.textContent = activeVaultCount;
 
@@ -1476,6 +1498,7 @@ function renderActiveVault() {
   renderKeysTable(vault.keys);
   renderDeletedKeysTable(vault.deleted_keys || [], vault.uri);
   renderCertsTable(vault.certificates);
+  renderDeletedCertsTable(vault.deleted_certificates || [], vault.uri);
   renderActiveVaultsTable(ENUMERATION_DATA.vaults);
   renderDeletedVaultsTable(ENUMERATION_DATA.deletedVaults || []);
 }
@@ -1492,7 +1515,7 @@ function renderSecretsTable(secrets, searchFilter = "") {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No secrets found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No secrets found</td></tr>`;
     return;
   }
 
@@ -1528,6 +1551,12 @@ function renderSecretsTable(secrets, searchFilter = "") {
       </td>
       <td><span class="badge-tag" title="${escapeHtml(secret.contentType || secret.content_type || 'secret')}">${escapeHtml(secret.contentType || secret.content_type || "secret")}</span></td>
       <td style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem;">${escapeHtml(secret.updated || "N/A")}</td>
+      <td>
+        <button class="action-btn-sm" onclick="showSecretVersions('${escapeHtml(secret.name)}')" title="Inspect historical versions of ${escapeHtml(secret.name)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          Versions
+        </button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -1547,7 +1576,7 @@ function renderKeysTable(keys, searchFilter = "") {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No cryptographic keys discovered</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No cryptographic keys discovered</td></tr>`;
     return;
   }
 
@@ -1571,6 +1600,12 @@ function renderKeysTable(keys, searchFilter = "") {
         </div>
       </td>
       <td><span class="tag ${statusVal === 'Enabled' ? 'tag-cyan' : 'tag-neutral'}">${escapeHtml(statusVal)}</span></td>
+      <td>
+        <button class="action-btn-sm" onclick="showKeyVersions('${escapeHtml(k.name)}')" title="Inspect historical versions of ${escapeHtml(k.name)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          Versions
+        </button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -1589,7 +1624,7 @@ function renderCertsTable(certs, searchFilter = "") {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No SSL/TLS certificates discovered</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No SSL/TLS certificates discovered</td></tr>`;
     return;
   }
 
@@ -1606,6 +1641,46 @@ function renderCertsTable(certs, searchFilter = "") {
       <td><span style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-secondary);">${escapeHtml(c.thumbprint || "N/A")}</span></td>
       <td style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1;">${escapeHtml(c.expires || "Active")}</td>
       <td><span class="tag ${autoRenewVal === 'Enabled' ? 'tag-cyan' : 'tag-neutral'}">${escapeHtml(autoRenewVal)}</span></td>
+      <td>
+        <button class="action-btn-sm" onclick="showCertVersions('${escapeHtml(c.name)}')" title="Inspect historical versions of ${escapeHtml(c.name)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          Versions
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderDeletedCertsTable(delCerts, vaultUri = "", searchFilter = "") {
+  const tbody = document.getElementById("del-certs-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const filterLower = (searchFilter || "").trim().toLowerCase();
+  const filtered = (delCerts || []).filter(c =>
+    !filterLower ||
+    (c.name && c.name.toLowerCase().includes(filterLower)) ||
+    (c.thumbprint && c.thumbprint.toLowerCase().includes(filterLower))
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No deleted SSL/TLS certificates found</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(c => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <span class="cert-name" style="color: #f87171;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          ${escapeHtml(c.name)}
+        </span>
+      </td>
+      <td><span style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-secondary);">${escapeHtml(c.thumbprint || "N/A")}</span></td>
+      <td style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1;">${escapeHtml(c.deleted_date || "N/A")}</td>
+      <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(c.scheduled_purge_date || "N/A")}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -2058,6 +2133,14 @@ function switchSubTab(group, target) {
       if (target === 'active') renderKeysTable(vault.keys, q);
       else renderDeletedKeysTable(vault.deleted_keys || [], vault.uri, q);
     }
+  } else if (group === 'certs') {
+    const cInput = document.getElementById("cert-search-input");
+    if (cInput) cInput.placeholder = target === 'active' ? "Search certificates..." : "Search deleted certificates...";
+    const q = cInput ? cInput.value : "";
+    if (vault) {
+      if (target === 'active') renderCertsTable(vault.certificates || [], q);
+      else renderDeletedCertsTable(vault.deleted_certificates || [], vault.uri, q);
+    }
   } else if (group === 'vaults') {
     const vInput = document.getElementById("del-vault-search-input");
     if (vInput) vInput.placeholder = target === 'active' ? "Search active key vaults..." : "Search deleted key vaults...";
@@ -2220,6 +2303,301 @@ function copyRecoveredSecretValue() {
   });
 }
 window.copyRecoveredSecretValue = copyRecoveredSecretValue;
+
+let currentVersionSecrets = [];
+
+function closeVersionsModal() {
+  const backdrop = document.getElementById("versions-modal-backdrop");
+  if (backdrop) backdrop.style.display = "none";
+}
+window.closeVersionsModal = closeVersionsModal;
+
+async function showSecretVersions(secretName) {
+  const vault = getActiveVault();
+  if (!vault) return;
+
+  const backdrop = document.getElementById("versions-modal-backdrop");
+  const title = document.getElementById("modal-versions-title");
+  const subtitle = document.getElementById("modal-versions-subtitle");
+  const thead = document.getElementById("modal-versions-thead");
+  const tbody = document.getElementById("modal-versions-tbody");
+  const loading = document.getElementById("modal-versions-loading");
+  const tableWrap = document.getElementById("modal-versions-table-wrap");
+
+  if (title) title.textContent = `Secret Versions // ${secretName}`;
+  if (subtitle) subtitle.textContent = `Key Vault: ${vault.name} (${vault.uri})`;
+  if (loading) loading.style.display = "block";
+  if (tableWrap) tableWrap.style.display = "none";
+  if (tbody) tbody.innerHTML = "";
+  if (backdrop) backdrop.style.display = "flex";
+
+  try {
+    const res = await fetch("/api/keyvault/secret-versions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vault_url: vault.uri, secret_name: secretName })
+    });
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}. If you just updated the app, please restart the backend server (run.py).`);
+    }
+    const data = await res.json();
+    if (loading) loading.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+
+    if (!data || !data.success || !Array.isArray(data.versions) || data.versions.length === 0) {
+      if (thead) thead.innerHTML = `<th>Status</th>`;
+      if (tbody) tbody.innerHTML = `<tr><td style="text-align: center; padding: 2rem; color: var(--text-muted);">No historical versions found or access restricted</td></tr>`;
+      return;
+    }
+
+    currentVersionSecrets = data.versions;
+    if (thead) {
+      thead.innerHTML = `
+        <th style="width: 25%;">Version ID</th>
+        <th style="width: 35%;">Plaintext Value</th>
+        <th style="width: 14%;">Created</th>
+        <th style="width: 13%;">Expires</th>
+        <th style="width: 13%;">Status</th>
+      `;
+    }
+
+    if (tbody) {
+      tbody.innerHTML = "";
+      data.versions.forEach((ver, idx) => {
+        const tr = document.createElement("tr");
+        const valStr = String(ver.value || "");
+        const isRestricted = valStr === "<Access Restricted>" || !valStr;
+        const statusTag = ver.enabled !== false ? `<span class="tag tag-cyan">Enabled</span>` : `<span class="tag tag-neutral">Disabled</span>`;
+        const shortVer = ver.version ? ver.version.substring(0, 14) + "..." : "Current";
+
+        tr.innerHTML = `
+          <td>
+            <span class="font-mono copyable-val" style="font-size: 0.775rem; color: #fff; cursor: pointer;" onclick="copyText('${escapeHtml(ver.version)}', 'Version ID')" title="Click to copy full Version ID (${escapeHtml(ver.version)})">
+              ${escapeHtml(shortVer)}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px; vertical-align: middle;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </span>
+          </td>
+          <td>
+            <div class="secret-value-box" style="max-width: 280px;">
+              <span class="secret-mask font-mono" id="ver-mask-${idx}" style="font-size: 0.8rem;">••••••••••••••••</span>
+              ${!isRestricted ? `
+                <button class="action-icon-btn" onclick="toggleVerSecret(${idx})" title="Reveal / Hide Value Inline">
+                  <svg id="ver-eye-${idx}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+                <button class="action-icon-btn" onclick="copyVerSecret(${idx})" title="Copy Value to Clipboard">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              ` : `<span style="font-size: 0.75rem; color: var(--text-muted);">&lt;Access Restricted&gt;</span>`}
+            </div>
+          </td>
+          <td style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-secondary);">${escapeHtml(ver.created || "N/A")}</td>
+          <td style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-muted);">${escapeHtml(ver.expires || "N/A")}</td>
+          <td>${statusTag}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  } catch (err) {
+    if (loading) loading.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #f87171; padding: 2rem;">Error fetching secret versions: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+window.showSecretVersions = showSecretVersions;
+
+function toggleVerSecret(idx) {
+  const mask = document.getElementById(`ver-mask-${idx}`);
+  const eye = document.getElementById(`ver-eye-${idx}`);
+  if (!mask || !currentVersionSecrets[idx]) return;
+  const isHidden = mask.textContent.trim().startsWith("••••");
+  if (isHidden) {
+    mask.textContent = currentVersionSecrets[idx].value || "";
+    mask.style.color = "#34d399";
+    if (eye) eye.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+  } else {
+    mask.textContent = "••••••••••••••••";
+    mask.style.color = "";
+    if (eye) eye.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+  }
+}
+window.toggleVerSecret = toggleVerSecret;
+
+function copyVerSecret(idx) {
+  if (!currentVersionSecrets[idx]) return;
+  const val = currentVersionSecrets[idx].value || "";
+  navigator.clipboard.writeText(val).then(() => {
+    showToast(`Version secret copied to clipboard!`);
+  }).catch(() => {
+    showToast(`Failed to copy version secret`);
+  });
+}
+window.copyVerSecret = copyVerSecret;
+
+async function showKeyVersions(keyName) {
+  const vault = getActiveVault();
+  if (!vault) return;
+
+  const backdrop = document.getElementById("versions-modal-backdrop");
+  const title = document.getElementById("modal-versions-title");
+  const subtitle = document.getElementById("modal-versions-subtitle");
+  const thead = document.getElementById("modal-versions-thead");
+  const tbody = document.getElementById("modal-versions-tbody");
+  const loading = document.getElementById("modal-versions-loading");
+  const tableWrap = document.getElementById("modal-versions-table-wrap");
+
+  if (title) title.textContent = `Cryptographic Key Versions // ${keyName}`;
+  if (subtitle) subtitle.textContent = `Key Vault: ${vault.name} (${vault.uri})`;
+  if (loading) loading.style.display = "block";
+  if (tableWrap) tableWrap.style.display = "none";
+  if (tbody) tbody.innerHTML = "";
+  if (backdrop) backdrop.style.display = "flex";
+
+  try {
+    const res = await fetch("/api/keyvault/key-versions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vault_url: vault.uri, key_name: keyName })
+    });
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}. If you just updated the app, please restart the backend server (run.py).`);
+    }
+    const data = await res.json();
+    if (loading) loading.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+
+    if (!data || !data.success || !Array.isArray(data.versions) || data.versions.length === 0) {
+      if (thead) thead.innerHTML = `<th>Status</th>`;
+      if (tbody) tbody.innerHTML = `<tr><td style="text-align: center; padding: 2rem; color: var(--text-muted);">No key versions discovered</td></tr>`;
+      return;
+    }
+
+    if (thead) {
+      thead.innerHTML = `
+        <th style="width: 32%;">Version ID</th>
+        <th style="width: 18%;">Key Type</th>
+        <th style="width: 18%;">Created</th>
+        <th style="width: 18%;">Updated</th>
+        <th style="width: 14%;">Status</th>
+      `;
+    }
+
+    if (tbody) {
+      tbody.innerHTML = "";
+      data.versions.forEach(ver => {
+        const tr = document.createElement("tr");
+        const statusTag = ver.enabled !== false ? `<span class="tag tag-cyan">Enabled</span>` : `<span class="tag tag-neutral">Disabled</span>`;
+        const shortVer = ver.version ? ver.version.substring(0, 16) + "..." : "Current";
+
+        tr.innerHTML = `
+          <td>
+            <span class="font-mono copyable-val" style="font-size: 0.775rem; color: #fff; cursor: pointer;" onclick="copyText('${escapeHtml(ver.version)}', 'Version ID')" title="Click to copy Version ID (${escapeHtml(ver.version)})">
+              ${escapeHtml(shortVer)}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px; vertical-align: middle;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </span>
+          </td>
+          <td><span class="font-mono" style="color: #cbd5e1;">${escapeHtml(ver.key_type || "RSA")}</span></td>
+          <td style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-secondary);">${escapeHtml(ver.created || "N/A")}</td>
+          <td style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-muted);">${escapeHtml(ver.updated || "N/A")}</td>
+          <td>${statusTag}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  } catch (err) {
+    if (loading) loading.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #f87171; padding: 2rem;">Error fetching key versions: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+window.showKeyVersions = showKeyVersions;
+
+async function showCertVersions(certName) {
+  const vault = getActiveVault();
+  if (!vault) return;
+
+  const backdrop = document.getElementById("versions-modal-backdrop");
+  const title = document.getElementById("modal-versions-title");
+  const subtitle = document.getElementById("modal-versions-subtitle");
+  const thead = document.getElementById("modal-versions-thead");
+  const tbody = document.getElementById("modal-versions-tbody");
+  const loading = document.getElementById("modal-versions-loading");
+  const tableWrap = document.getElementById("modal-versions-table-wrap");
+
+  if (title) title.textContent = `Certificate Versions // ${certName}`;
+  if (subtitle) subtitle.textContent = `Key Vault: ${vault.name} (${vault.uri})`;
+  if (loading) loading.style.display = "block";
+  if (tableWrap) tableWrap.style.display = "none";
+  if (tbody) tbody.innerHTML = "";
+  if (backdrop) backdrop.style.display = "flex";
+
+  try {
+    const res = await fetch("/api/keyvault/cert-versions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vault_url: vault.uri, cert_name: certName })
+    });
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}. If you just updated the app, please restart the backend server (run.py).`);
+    }
+    const data = await res.json();
+    if (loading) loading.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+
+    if (!data || !data.success || !Array.isArray(data.versions) || data.versions.length === 0) {
+      if (thead) thead.innerHTML = `<th>Status</th>`;
+      if (tbody) tbody.innerHTML = `<tr><td style="text-align: center; padding: 2rem; color: var(--text-muted);">No certificate versions discovered</td></tr>`;
+      return;
+    }
+
+    if (thead) {
+      thead.innerHTML = `
+        <th style="width: 25%;">Version ID</th>
+        <th style="width: 35%;">SHA-1 Thumbprint</th>
+        <th style="width: 15%;">Created</th>
+        <th style="width: 15%;">Expires</th>
+        <th style="width: 10%;">Status</th>
+      `;
+    }
+
+    if (tbody) {
+      tbody.innerHTML = "";
+      data.versions.forEach(ver => {
+        const tr = document.createElement("tr");
+        const statusTag = ver.enabled !== false ? `<span class="tag tag-cyan">Enabled</span>` : `<span class="tag tag-neutral">Disabled</span>`;
+        const shortVer = ver.version ? ver.version.substring(0, 14) + "..." : "Current";
+
+        tr.innerHTML = `
+          <td>
+            <span class="font-mono copyable-val" style="font-size: 0.775rem; color: #fff; cursor: pointer;" onclick="copyText('${escapeHtml(ver.version)}', 'Version ID')" title="Click to copy Version ID (${escapeHtml(ver.version)})">
+              ${escapeHtml(shortVer)}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px; vertical-align: middle;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </span>
+          </td>
+          <td><span class="font-mono" style="font-size: 0.775rem; color: var(--text-secondary);">${escapeHtml(ver.thumbprint || "N/A")}</span></td>
+          <td style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-secondary);">${escapeHtml(ver.created || "N/A")}</td>
+          <td style="font-family: var(--font-mono); font-size: 0.8rem; color: #cbd5e1;">${escapeHtml(ver.expires || "N/A")}</td>
+          <td>${statusTag}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  } catch (err) {
+    if (loading) loading.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #f87171; padding: 2rem;">Error fetching certificate versions: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+window.showCertVersions = showCertVersions;
+
+function copyText(val, label = "Item") {
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(() => {
+    showToast(`${label} copied to clipboard!`);
+  }).catch(() => {
+    showToast(`Failed to copy ${label}`);
+  });
+}
+window.copyText = copyText;
 
 function inspectSecretByIndex(index) {
   const mask = document.getElementById(`mask-${index}`);
