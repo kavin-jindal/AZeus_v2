@@ -66,6 +66,30 @@
       if (typeof window.exportVaultSecretsJson === 'function') {
         window.exportVaultSecretsJson();
       }
+    },
+
+    showSecretVersions: function(secretName) {
+      if (typeof window.showSecretVersions === 'function') {
+        window.showSecretVersions(secretName);
+      }
+    },
+
+    showKeyVersions: function(keyName) {
+      if (typeof window.showKeyVersions === 'function') {
+        window.showKeyVersions(keyName);
+      }
+    },
+
+    showCertVersions: function(certName) {
+      if (typeof window.showCertVersions === 'function') {
+        window.showCertVersions(certName);
+      }
+    },
+
+    closeVersionsModal: function() {
+      if (typeof window.closeVersionsModal === 'function') {
+        window.closeVersionsModal();
+      }
     }
   };
 

@@ -20,11 +20,22 @@ class ResourceService:
         try:
             groups = self.client.list_resource_groups()
             for group in groups:
+                raw_props = getattr(group, "properties", None)
+                prop_dict = None
+                if raw_props:
+                    if hasattr(raw_props, "as_dict") and callable(raw_props.as_dict):
+                        prop_dict = raw_props.as_dict()
+                    elif isinstance(raw_props, dict):
+                        prop_dict = raw_props
+                    else:
+                        prop_dict = {
+                            "provisioning_state": getattr(raw_props, "provisioning_state", "Succeeded")
+                        }
                 groups_list.append({
                     "id": group.id,
                     "name": group.name,
                     "location": group.location,
-                    "properties": getattr(group, "properties", None),
+                    "properties": prop_dict,
                     "managed_by": getattr(group, "managed_by", None)
                 })
         except Exception as e:

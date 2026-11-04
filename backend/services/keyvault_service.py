@@ -105,6 +105,41 @@ class KeyVaultService:
             print(f"Error getting secrets from {vault_url}: {e}")
         return secrets
 
+    def get_secret_versions(self, vault_url=None, secret_name=None):
+        """Retrieves all versions of a secret with metadata and plaintext values if accessible."""
+        versions = []
+        if not vault_url or not secret_name:
+            return versions
+        try:
+            client = self.client.get_secret_client(vault_url)
+            for prop in client.list_properties_of_secret_versions(secret_name):
+                ver_id = getattr(prop, "version", "")
+                created = str(prop.created_on.date()) if hasattr(prop, "created_on") and prop.created_on else ""
+                updated = str(prop.updated_on.date()) if hasattr(prop, "updated_on") and prop.updated_on else ""
+                expires = str(prop.expires_on.date()) if hasattr(prop, "expires_on") and prop.expires_on else "N/A"
+                enabled = getattr(prop, "enabled", True)
+
+                val = ""
+                try:
+                    s_obj = client.get_secret(secret_name, version=ver_id)
+                    val = s_obj.value if s_obj else ""
+                except Exception:
+                    val = "<Access Restricted>"
+
+                versions.append({
+                    "version": ver_id,
+                    "name": secret_name,
+                    "value": val,
+                    "enabled": enabled,
+                    "content_type": getattr(prop, "content_type", "") or "secret",
+                    "created": created,
+                    "updated": updated,
+                    "expires": expires
+                })
+        except Exception as e:
+            print(f"Error fetching secret versions for {secret_name} from {vault_url}: {e}")
+        return versions
+
     def get_deleted_secrets(self, vault_url=None):
         """Retrieves soft-deleted secrets awaiting purge."""
         del_secrets = []
@@ -169,6 +204,59 @@ class KeyVaultService:
             print(f"Error getting certs from {vault_url}: {e}")
         return certs
 
+    def get_cert_versions(self, vault_url=None, cert_name=None):
+        """Retrieves all versions of a certificate."""
+        versions = []
+        if not vault_url or not cert_name:
+            return versions
+        try:
+            client = self.client.get_certificate_client(vault_url)
+            for prop in client.list_properties_of_certificate_versions(cert_name):
+                ver_id = getattr(prop, "version", "")
+                created = str(prop.created_on.date()) if hasattr(prop, "created_on") and prop.created_on else ""
+                expires = str(prop.expires_on.date()) if hasattr(prop, "expires_on") and prop.expires_on else "N/A"
+                enabled = getattr(prop, "enabled", True)
+                tb = ""
+                if hasattr(prop, "x509_thumbprint") and prop.x509_thumbprint:
+                    tb = prop.x509_thumbprint.hex().upper()
+                elif hasattr(prop, "thumbprint") and prop.thumbprint:
+                    tb = prop.thumbprint.hex().upper() if hasattr(prop.thumbprint, "hex") else str(prop.thumbprint)
+
+                versions.append({
+                    "version": ver_id,
+                    "name": cert_name,
+                    "thumbprint": tb,
+                    "enabled": enabled,
+                    "created": created,
+                    "expires": expires
+                })
+        except Exception as e:
+            print(f"Error fetching cert versions for {cert_name} from {vault_url}: {e}")
+        return versions
+
+    def get_deleted_certs(self, vault_url=None):
+        """Retrieves soft-deleted certificates awaiting purge."""
+        del_certs = []
+        if not vault_url:
+            return del_certs
+        try:
+            client = self.client.get_certificate_client(vault_url)
+            for cert in client.list_deleted_certificates():
+                tb = ""
+                if hasattr(cert, "x509_thumbprint") and cert.x509_thumbprint:
+                    tb = cert.x509_thumbprint.hex().upper()
+                del_certs.append({
+                    "name": cert.name,
+                    "id": getattr(cert, "id", ""),
+                    "recovery_id": getattr(cert, "recovery_id", ""),
+                    "thumbprint": tb,
+                    "scheduled_purge_date": str(cert.scheduled_purge_date.date()) if hasattr(cert, "scheduled_purge_date") and cert.scheduled_purge_date else "",
+                    "deleted_date": str(cert.deleted_date.date()) if hasattr(cert, "deleted_date") and cert.deleted_date else ""
+                })
+        except Exception as e:
+            print(f"Error getting deleted certs from {vault_url}: {e}")
+        return del_certs
+
     def get_keys(self, vault_url=None):
         """Retrieves cryptographic keys."""
         keys = []
@@ -186,6 +274,40 @@ class KeyVaultService:
         except Exception as e:
             print(f"Error getting keys from {vault_url}: {e}")
         return keys
+
+    def get_key_versions(self, vault_url=None, key_name=None):
+        """Retrieves all versions of a cryptographic key."""
+        versions = []
+        if not vault_url or not key_name:
+            return versions
+        try:
+            client = self.client.get_key_client(vault_url)
+            for prop in client.list_properties_of_key_versions(key_name):
+                ver_id = getattr(prop, "version", "")
+                created = str(prop.created_on.date()) if hasattr(prop, "created_on") and prop.created_on else ""
+                updated = str(prop.updated_on.date()) if hasattr(prop, "updated_on") and prop.updated_on else ""
+                expires = str(prop.expires_on.date()) if hasattr(prop, "expires_on") and prop.expires_on else "N/A"
+                enabled = getattr(prop, "enabled", True)
+
+                key_type = "RSA"
+                try:
+                    k_obj = client.get_key(key_name, version=ver_id)
+                    key_type = getattr(k_obj, "key_type", "RSA")
+                except Exception:
+                    pass
+
+                versions.append({
+                    "version": ver_id,
+                    "name": key_name,
+                    "key_type": key_type,
+                    "enabled": enabled,
+                    "created": created,
+                    "updated": updated,
+                    "expires": expires
+                })
+        except Exception as e:
+            print(f"Error fetching key versions for {key_name} from {vault_url}: {e}")
+        return versions
 
     def get_deleted_keys(self, vault_url=None):
         """Retrieves soft-deleted cryptographic keys."""

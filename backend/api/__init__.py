@@ -68,6 +68,7 @@ def get_azure_data(force_refresh=False):
                 keys = kv_service.get_keys(vault_url=v_url)
                 del_keys = kv_service.get_deleted_keys(vault_url=v_url)
                 certs = kv_service.get_certs(vault_url=v_url)
+                del_certs = kv_service.get_deleted_certs(vault_url=v_url)
 
                 rg_name = vault.get("resourceGroup") or ""
                 if not rg_name and vault.get("id"):
@@ -77,7 +78,7 @@ def get_azure_data(force_refresh=False):
                         if idx + 1 < len(parts):
                             rg_name = parts[idx + 1]
 
-                is_accessible = bool(secrets or keys or certs or del_secrets or del_keys)
+                is_accessible = bool(secrets or keys or certs or del_secrets or del_keys or del_certs)
 
                 vaults_data.append({
                     "id": vault["name"],
@@ -95,7 +96,8 @@ def get_azure_data(force_refresh=False):
                     "deleted_secrets": del_secrets,
                     "keys": keys,
                     "deleted_keys": del_keys,
-                    "certificates": certs
+                    "certificates": certs,
+                    "deleted_certificates": del_certs
                 })
         except Exception as e:
             print(f"Error fetching key vault data: {e}")
